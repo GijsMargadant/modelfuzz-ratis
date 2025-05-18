@@ -1,0 +1,4 @@
+exp_name,guider,iterations,seed_population,mutations_per_trace,crash_quota,test_harness,horizon,seed_frequency,num_workers
+state,state,500,20,5,10,3,100,200,5
+random,state,500,20,5,10,3,100,200,5
+trace,trace,500,20,5,10,3,100,200,5

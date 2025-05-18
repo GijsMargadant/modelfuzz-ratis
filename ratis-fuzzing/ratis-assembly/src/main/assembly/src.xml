@@ -1,0 +1,116 @@
+<?xml version="1.0"?>
+<assembly xmlns="http://maven.apache.org/ASSEMBLY/2.0.0"
+          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+          xsi:schemaLocation="http://maven.apache.org/ASSEMBLY/2.0.0 http://maven.apache.org/xsd/assembly-2.0.0.xsd">
+<!--
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+-->
+  <id>src</id>
+  <formats>
+    <format>tar.gz</format>
+  </formats>
+  <moduleSets>
+    <moduleSet>
+      <useAllReactorProjects>true</useAllReactorProjects>
+      <includes>
+        <include>org.apache.ratis:ratis-assembly</include>
+        <include>org.apache.ratis:ratis-client</include>
+        <include>org.apache.ratis:ratis-common</include>
+        <include>org.apache.ratis:ratis-examples</include>
+        <include>org.apache.ratis:ratis-grpc</include>
+        <include>org.apache.ratis:ratis-netty</include>
+        <include>org.apache.ratis:ratis-proto</include>
+        <include>org.apache.ratis:ratis-docs</include>
+        <include>org.apache.ratis:ratis-replicated-map</include>
+        <include>org.apache.ratis:ratis-server-api</include>
+        <include>org.apache.ratis:ratis-server</include>
+        <include>org.apache.ratis:ratis-shell</include>
+        <include>org.apache.ratis:ratis-test</include>
+        <include>org.apache.ratis:ratis-metrics</include>
+        <include>org.apache.ratis:ratis-tools</include>
+        <include>org.apache.ratis:ratis-resource-bundle</include>
+      </includes>
+      <sources>
+        <excludeSubModuleDirectories>false</excludeSubModuleDirectories>
+        <fileSets>
+          <fileSet>
+            <includes>
+              <include>**</include>
+            </includes>
+            <excludes>
+              <exclude>target/</exclude>
+              <exclude>test/</exclude>
+              <exclude>.classpath</exclude>
+              <exclude>.hugo_build.lock</exclude>
+              <exclude>.project</exclude>
+              <exclude>.settings/</exclude>
+              <exclude>*.iml/</exclude>
+            </excludes>
+          </fileSet>
+        </fileSets>
+      </sources>
+    </moduleSet>
+  </moduleSets>
+  <fileSets>
+    <!-- Include dev support tools -->
+    <fileSet>
+      <directory>${project.basedir}/../dev-support</directory>
+      <outputDirectory>dev-support</outputDirectory>
+      <fileMode>0644</fileMode>
+      <directoryMode>0755</directoryMode>
+      <excludes>
+        <exclude>**/*.sh</exclude>
+      </excludes>
+    </fileSet>
+    <!-- Ensure shell scripts are executable -->
+    <fileSet>
+      <directory>${project.basedir}/../dev-support</directory>
+      <outputDirectory>dev-support</outputDirectory>
+      <fileMode>0755</fileMode>
+      <directoryMode>0755</directoryMode>
+      <includes>
+        <include>**/*.sh</include>
+      </includes>
+    </fileSet>
+    <!-- Include files in root dir -->
+    <fileSet>
+      <directory>${project.basedir}/..</directory>
+      <outputDirectory>.</outputDirectory>
+      <includes>
+        <include>.mvn/wrapper/maven-wrapper.properties</include>
+        <include>BUILDING.md</include>
+        <include>LICENSE</include>
+        <include>NOTICE</include>
+        <include>README.md</include>
+        <include>mvnw.cmd</include>
+        <include>pom.xml</include>
+        <include>start-build-env.sh</include>
+      </includes>
+      <fileMode>0644</fileMode>
+    </fileSet>
+    <fileSet>
+      <directory>${project.basedir}/..</directory>
+      <outputDirectory>.</outputDirectory>
+      <includes>
+        <include>mvnw</include>
+      </includes>
+      <fileMode>0755</fileMode>
+    </fileSet>
+  </fileSets>
+</assembly>

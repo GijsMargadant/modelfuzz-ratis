@@ -1,0 +1,47 @@
+[{"senderId":-1,"receiverId":0,"message":"NextRequest"}]
+
+[{"senderId":0,"receiverId":1,"message":"TMSendPrepareReq","params":[1]}]
+[{"senderId":0,"receiverId":2,"message":"TMSendPrepareReq","params":[1]}]
+[{"senderId":0,"receiverId":3,"message":"TMSendPrepareReq","params":[1]}]
+
+[{"senderId":0,"receiverId":1,"message":"RMRcvPrepareReq","params":[1, 1]}]
+[{"senderId":0,"receiverId":2,"message":"RMRcvPrepareReq","params":[2, 1]}]
+[{"senderId":0,"receiverId":3,"message":"RMRcvPrepareReq","params":[3, 1]}]
+
+[{"senderId":1,"receiverId":0,"message":"RMSendPrepared","params":[1, 1]}]
+[{"senderId":2,"receiverId":0,"message":"RMSendPrepared","params":[2, 1]}]
+[{"senderId":3,"receiverId":0,"message":"RMSendPrepared","params":[3, 1]}]
+
+[{"senderId":1,"receiverId":0,"message":"TMRcvPrepared","params":[1, 1]}]
+[{"senderId":2,"receiverId":0,"message":"TMRcvPrepared","params":[2, 1]}]
+[{"senderId":3,"receiverId":0,"message":"TMRcvPrepared","params":[3, 1]}]
+
+[{"senderId":0,"receiverId":1,"message":"TMSendGlobalCommit","params":[1]}]
+[{"senderId":0,"receiverId":2,"message":"TMSendGlobalCommit","params":[1]}]
+[{"senderId":0,"receiverId":3,"message":"TMSendGlobalCommit","params":[1]}]
+
+[{"senderId":0,"receiverId":1,"message":"RMRcvGlobalCommit","params":[1, 1]}]
+[{"senderId":0,"receiverId":2,"message":"RMRcvGlobalCommit","params":[2, 1]}]
+[{"senderId":0,"receiverId":3,"message":"RMRcvGlobalCommit","params":[3, 1]}]
+
+[{"senderId":-1,"receiverId":0,"message":"NextRequest"}]
+
+[{"senderId":0,"receiverId":1,"message":"TMSendPrepareReq","params":[2]}]
+[{"senderId":0,"receiverId":2,"message":"TMSendPrepareReq","params":[2]}]
+[{"senderId":0,"receiverId":3,"message":"TMSendPrepareReq","params":[2]}]
+
+[{"senderId":0,"receiverId":1,"message":"RMRcvPrepareReq","params":[1, 2]}]
+[{"senderId":0,"receiverId":2,"message":"RMRcvPrepareReq","params":[2, 2]}]
+[{"senderId":0,"receiverId":3,"message":"RMRcvPrepareReq","params":[3, 2]}]
+
+[{"senderId":1,"receiverId":0,"message":"RMSendAborted","params":[1, 2]}]
+[{"senderId":2,"receiverId":0,"message":"RMSendPrepared","params":[2, 2]}]
+[{"senderId":3,"receiverId":0,"message":"RMSendPrepared","params":[3, 2]}]
+
+[{"senderId":0,"receiverId":1,"message":"TMRcvAborted","params":[1, 2]}]
+[{"senderId":0,"receiverId":2,"message":"TMRcvPrepared","params":[2, 2]}]
+[{"senderId":0,"receiverId":3,"message":"TMRcvPrepared","params":[3, 2]}]
+
+[{"senderId":0,"receiverId":1,"message":"RMRcvGlobalAbort","params":[1, 2]}]
+[{"senderId":0,"receiverId":2,"message":"RMRcvGlobalAbort","params":[2, 2]}]
+[{"senderId":0,"receiverId":3,"message":"RMRcvGlobalAbort","params":[3, 2]}]
