@@ -35,10 +35,11 @@ First, run the TLC server. Run the following command from `tlc-controlled-with-b
 ```
 where `<path-to-a-tla-file>` can be one of the files inside `tla-benchmarks/Raft/model`. For example:
 ``` shell
-java -jar dist/tla2tools_server.jar -controlled ..\tla-benchmarks\Raft\model\RAFT_1_3.tla -config <path-to-cfg-file> -mapperparams "name=raft"
+java -jar dist/tla2tools_server.jar -controlled ..\tla-benchmarks\Raft\model\RAFT_1_3.tla -config ..\tla-benchmarks\Raft\model\RAFT_1_3.cfg -mapperparams "name=raft"
 ```
 
 Now, within the `modelfuzz` directory, run the fuzzer using:
 ``` shell
-./modelfuzz-java
+./modelfuzz-java 123456789
 ```
+where `123456789` is the seed
