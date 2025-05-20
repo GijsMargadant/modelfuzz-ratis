@@ -3,6 +3,8 @@ package main
 import (
 	"bytes"
 	"errors"
+	// "fmt"
+	"log"
 	"os"
 	"os/exec"
 	"strconv"
@@ -30,6 +32,49 @@ func NewRatisNode(config *NodeConfig, logger *Logger) *RatisNode {
 		stderr:  nil,
 	}
 }
+
+// func (x *RatisNode) Create() {
+// 	// ─── NEW: force Ratis to bind its RPC server to x.config.InterceptorPort ───
+// 	jvmOpts := []string{
+// 		// adjust the property name if your version of Ratis uses a different key:
+// 		fmt.Sprintf("-Dratis.rpc.server.port=%d", x.config.InterceptorPort),
+// 	}
+
+// 	// ─── the existing args to your CounterServer ───
+// 	serverArgs := []string{
+// 		x.config.LogConfig, // e.g. -Dlog4j.configuration=…
+// 		"-cp",
+// 		x.config.ServerPath, // path to ratis-examples.jar
+// 		"org.apache.ratis.examples.counter.server.CounterServer",
+// 		strconv.Itoa(x.config.ClusterID),
+// 		strconv.Itoa(x.config.SchedulerPort),
+// 		strconv.Itoa(x.config.InterceptorPort),
+// 		x.config.NodeId,
+// 		x.config.PeerAddresses,
+// 		"02511d47-d67c-49a3-9011-abb3109a44c1", // cluster UUID
+// 		"0",
+// 	}
+
+// 	// merge JVM opts + your existing args
+// 	allArgs := append(jvmOpts, serverArgs...)
+
+// 	x.logger.With(LogParams{"server-args": strings.Join(allArgs, " ")}).
+// 		Debug("Creating server with JVM opts + CounterServer args")
+
+// 	// spawn the java process
+// 	x.process = exec.Command("java", allArgs...)
+// 	SetupProcessGroup(x.process) // platform‐independent PGID or no‐op on Windows
+
+// 	// wire up logging buffers
+// 	if x.stdout == nil {
+// 		x.stdout = new(bytes.Buffer)
+// 	}
+// 	if x.stderr == nil {
+// 		x.stderr = new(bytes.Buffer)
+// 	}
+// 	x.process.Stdout = x.stdout
+// 	x.process.Stderr = x.stderr
+// }
 
 func (x *RatisNode) Create() {
 	serverArgs := []string{
@@ -98,7 +143,14 @@ func (x *RatisNode) Stop() error {
 	var err error
 	if x.process.Process != nil {
 		// err = syscall.Kill(-x.process.Process.Pid, syscall.SIGKILL)
-		err = KillProcessGroup(x.process.Process.Pid) // platform independent
+		err := KillProcessGroup(x.process.Process.Pid) // platform independent
+		if err != nil {
+			// Kill fallito
+			log.Printf("Failed to kill process %d: %v", x.process.Process.Pid, err)
+		} else {
+			// Kill riuscito
+			log.Printf("Successfully killed process %d", x.process.Process.Pid)
+		}
 	}
 
 	x.process = nil

@@ -15,6 +15,9 @@ type Guider interface {
 	Coverage() int
 	// BranchCoverage() int
 	Reset()
+
+	DumpPaths(filePath string) error
+	Paths() Paths
 }
 
 func NewGuider(fuzzerType FuzzerType, addr, recordPath string) Guider {
@@ -35,6 +38,8 @@ type TLCStateGuider struct {
 	// gCovProgramPath string
 
 	recordPath string
+
+	paths Paths
 }
 
 var _ Guider = &TLCStateGuider{}
@@ -47,6 +52,7 @@ func NewTLCStateGuider(tlcAddr, recordPath string) *TLCStateGuider {
 		recordPath: recordPath,
 		// objectPath:      objectPath,
 		// gCovProgramPath: gCovPath,
+		paths: make(Paths, 0),
 	}
 }
 
@@ -71,6 +77,15 @@ func (t *TLCStateGuider) Check(iter string, trace *Trace, eventTrace *EventTrace
 
 	numNewStates := 0
 	if tlcStates, err := t.tlcClient.SendTrace(eventTrace); err == nil {
+
+		if len(tlcStates) > 0 {
+			path := make(Path, len(tlcStates))
+			for i, s := range tlcStates {
+				path[i] = PathStep{Key: s.Key, Repr: s.Repr}
+			}
+			t.paths = append(t.paths, path)
+		}
+
 		if record {
 			t.recordTrace(iter, trace, eventTrace, tlcStates)
 		}
@@ -83,6 +98,18 @@ func (t *TLCStateGuider) Check(iter string, trace *Trace, eventTrace *EventTrace
 		}
 	}
 	return numNewStates != 0, numNewStates
+}
+
+func (t *TLCStateGuider) Paths() Paths {
+	return t.paths
+}
+
+func (t *TLCStateGuider) DumpPaths(filePath string) error {
+	data, err := json.MarshalIndent(t.paths, "", "\t")
+	if err != nil {
+		return err
+	}
+	return os.WriteFile(filePath, data, 0o644)
 }
 
 func (t *TLCStateGuider) recordTrace(as string, trace *Trace, eventTrace *EventTrace, states []TLCState) {

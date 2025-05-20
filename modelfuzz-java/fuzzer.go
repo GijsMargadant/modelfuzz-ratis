@@ -332,6 +332,17 @@ func (f *Fuzzer) Run() {
 	writer := bufio.NewWriter(file)
 	writer.Write(dataB)
 	writer.Flush()
+
+	//  --- store & print paths ---
+	pathsFile := path.Join(f.config.BaseWorkingDir, "paths.json")
+	if err := f.guider.DumpPaths(pathsFile); err != nil {
+		f.logger.Error(fmt.Sprintf("failed to write paths: %v", err))
+	} else {
+		f.logger.Info(fmt.Sprintf("state paths written to %s", pathsFile))
+		for i, p := range f.guider.Paths() {
+			f.logger.Info(fmt.Sprintf("Path %d: %v", i, p))
+		}
+	}
 }
 
 func (f *Fuzzer) GenerateRandom() *Trace {
