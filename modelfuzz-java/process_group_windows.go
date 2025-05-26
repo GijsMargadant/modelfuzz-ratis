@@ -5,8 +5,9 @@ package main
 
 import (
 	"fmt"
-	"os"
 	"os/exec"
+	"strconv"
+	"strings"
 	"syscall"
 )
 
@@ -35,15 +36,24 @@ func SetupProcessGroup(cmd *exec.Cmd) {
 //     return nil
 // }
 
+// func KillProcessGroup(pid int) error {
+//     // FindProcess on Windows never fails for a valid PID.
+//     proc, err := os.FindProcess(pid)
+//     if err != nil {
+//         return fmt.Errorf("could not find process %d: %w", pid, err)
+//     }
+//     // Kill on Windows issues a TerminateProcess syscall.
+//     if err := proc.Kill(); err != nil {
+//         return fmt.Errorf("failed to kill process %d: %w", pid, err)
+//     }
+//     return nil
+// }
+
 func KillProcessGroup(pid int) error {
-    // FindProcess on Windows never fails for a valid PID.
-    proc, err := os.FindProcess(pid)
-    if err != nil {
-        return fmt.Errorf("could not find process %d: %w", pid, err)
-    }
-    // Kill on Windows issues a TerminateProcess syscall.
-    if err := proc.Kill(); err != nil {
-        return fmt.Errorf("failed to kill process %d: %w", pid, err)
+    cmd := exec.Command("taskkill", "/T", "/F", "/PID", strconv.Itoa(pid))
+    output, err := cmd.CombinedOutput()
+    if err != nil && !strings.Contains(string(output), "no process was found") {
+        return fmt.Errorf("kill failed: %v, output: %s", err, output)
     }
     return nil
 }
