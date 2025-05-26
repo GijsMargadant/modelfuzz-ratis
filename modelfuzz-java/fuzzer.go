@@ -142,9 +142,11 @@ func (f *Fuzzer) Run() {
 			mutated = false
 		} else {
 			if len(f.scheduleQueue) > 0 {
+				f.logger.Debug("Taking schedule from schedule queue")
 				schedule = f.scheduleQueue[0]
 				f.scheduleQueue = f.scheduleQueue[1:]
 			} else {
+				f.logger.Debug("Generating new random schedule")
 				schedule = f.GenerateRandom()
 				mutated = false
 			}
@@ -178,24 +180,7 @@ func (f *Fuzzer) Run() {
 		f.logger.Debug("Fuzzer setup complete.")
 		time.Sleep(3 * time.Second)
 
-		for step := 0; step < f.config.Horizon; step++ { // start := time.Now(); time.Since(start) < time.Duration(f.config.IterTimeBudget) * time.Second; {
-			// var choice Choice
-			// // Random if schedule is empty
-			// if step >= len(schedule.Choices) {
-			// 	// Choose between nodes (from, to), client request, fault
-			// 	fromIdx := f.random.Intn(f.config.NumNodes) + 1
-			// 	toIdx := f.random.Intn(f.config.NumNodes) + 1
-			// 	choice = Choice{
-			// 		Type: "Node",
-			// 		Step: step,
-			// 		From: strconv.Itoa(fromIdx),
-			// 		To:	 strconv.Itoa(toIdx),
-			// 		MaxMessages: f.random.Intn(f.config.MaxMessages),
-			// 	}
-			// 	schedule.Add(choice)
-			// } else {
-			// 	choice = schedule.Choices[step]
-			// }
+		for step := 0; step < f.config.Horizon; step++ {
 
 			f.logger.Debug(strconv.Itoa(step))
 			crashNode, ok := crashPoints[step]
@@ -230,7 +215,7 @@ func (f *Fuzzer) Run() {
 
 			op, ok := clientRequests[step]
 			if ok {
-				f.logger.Debug("Sending request " + op)
+				f.logger.Debug("Sending request: " + op)
 				cluster.SendRequest()
 				f.network.AddClientRequestEvent(requestCount)
 				requestCount++
@@ -268,6 +253,7 @@ func (f *Fuzzer) Run() {
 		// }
 		if f.guider != nil {
 			newStates, weight = f.guider.Check("states", schedule, eventTrace, true)
+			f.logger.Debug("Found " + strconv.Itoa(weight) + " new states")
 		}
 		if newStates && f.fuzzerType != RandomFuzzer {
 			mutatedTraces := make([]*Trace, 0)
@@ -355,7 +341,7 @@ func (f *Fuzzer) GenerateRandom() *Trace {
 			Step:        i,
 			From:        strconv.Itoa(fromIdx),
 			To:          strconv.Itoa(toIdx),
-			MaxMessages: f.random.Intn(f.config.MaxMessages),
+			MaxMessages: f.random.Intn(f.config.MaxMessages + 1),
 		})
 	}
 	choices := make([]int, f.config.Horizon)

@@ -100,8 +100,11 @@ func NewNetwork(ctx context.Context, port int, logger *Logger) *Network {
 		requestCounter:     0,
 	}
 
+	// gin.SetMode(gin.DebugMode)
 	gin.SetMode(gin.ReleaseMode)
 	r := gin.New()
+	// r.Use(gin.Logger())   // Logs every request to stdout
+	// r.Use(gin.Recovery()) // Recovers from panics
 	r.POST("/replica", n.handleReplica)
 	r.POST("/event", n.handleEvent)
 	r.POST("/message", n.handleMessage)
@@ -117,39 +120,177 @@ func NewNetwork(ctx context.Context, port int, logger *Logger) *Network {
 }
 
 func (n *Network) handleMessage(c *gin.Context) {
-	m := Message{}
-	if err := c.ShouldBindJSON(&m); err != nil {
-		fmt.Println(fmt.Errorf("unmarshal error: %e", err))
+	var raw map[string]interface{}
+	if err := c.ShouldBindJSON(&raw); err != nil {
+		n.logger.With(LogParams{"error": err.Error()}).Debug("Failed to unmarshal request")
 		c.JSON(http.StatusBadRequest, gin.H{"error": "failed to unmarshal request"})
 		return
 	}
-	to := m.to()
-	from := m.from()
-	parsedMessage := make(map[string]interface{})
-	if err := json.Unmarshal([]byte(m.Data), &parsedMessage); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "failed to unmarshal request"})
+
+	from, ok1 := raw["from"].(string)
+	to, ok2 := raw["to"].(string)
+	msgType, ok3 := raw["type"].(string)
+	data, ok4 := raw["data"].(string)
+	paramsRaw, ok5 := raw["params"]
+
+	if !ok1 || !ok2 || !ok3 || !ok4 || !ok5 {
+		n.logger.With(LogParams{"error": "missing required fields"}).Debug("Invalid message format")
+		c.JSON(http.StatusBadRequest, gin.H{"error": "missing required fields"})
 		return
 	}
-	n.logger.With(LogParams{"message": parsedMessage}).Debug("received message")
-	m.ParsedMessage = parsedMessage
-	// sendEvent := Event{
-	// 	Name:   "SendMessage",
-	// 	Node:   from,
-	// 	Params: n.getMessageEventParams(m),
-	// }
+
+	params, ok := paramsRaw.(map[string]interface{})
+	if !ok {
+		n.logger.With(LogParams{"error": "params field is not a valid object"}).Debug("Invalid params format")
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid params format"})
+		return
+	}
+
+	m := Message{
+		From:          from,
+		To:            to,
+		Type:          msgType,
+		Data:          data,
+		ParsedMessage: params,
+	}
+
+	// n.logger.With(LogParams{"message": params}).Debug("received message")
 
 	mKey := fmt.Sprintf("%s_%s", from, to)
+
 	n.lock.Lock()
-	_, ok := n.mailboxes[mKey]
-	if !ok {
+	if _, ok := n.mailboxes[mKey]; !ok {
 		n.mailboxes[mKey] = make([]Message, 0)
 	}
 	n.mailboxes[mKey] = append(n.mailboxes[mKey], m.Copy())
-	// n.Events.Add(sendEvent)
 	n.lock.Unlock()
 
 	c.JSON(http.StatusOK, gin.H{"message": "ok"})
 }
+
+// Decoding data field
+// func (n *Network) handleMessage(c *gin.Context) {
+// 	m := Message{}
+// 	if err := c.ShouldBindJSON(&m); err != nil {
+// 		n.logger.With(LogParams{"error": err.Error()}).Debug("Error while binding JSON")
+// 		c.JSON(http.StatusBadRequest, gin.H{"error": "failed to unmarshal request"})
+// 		return
+// 	}
+
+// 	// n.logger.With(LogParams{
+// 	// 	"from": m.From,
+// 	// 	"to":   m.To,
+// 	// 	"type": m.Type,
+// 	// 	"data": m.Data,
+// 	// }).Debug("Json message")
+
+// 	// Step 1: decode the top-level base64
+// 	decodedLevel1, err := base64.StdEncoding.DecodeString(m.Data)
+// 	if err != nil {
+// 		n.logger.With(LogParams{"error": err.Error(), "data": m.Data}).Debug("base64 decode error (level 1)")
+// 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid base64 data"})
+// 		return
+// 	}
+
+// 	// Step 2: unmarshal decodedLevel1 to get inner JSON (contains "data" and "request_id")
+// 	var outer map[string]interface{}
+// 	if err := json.Unmarshal(decodedLevel1, &outer); err != nil {
+// 		n.logger.With(LogParams{"error": err.Error(), "decoded": string(decodedLevel1)}).Debug("unmarshal error (level 1)")
+// 		c.JSON(http.StatusBadRequest, gin.H{"error": "failed to unmarshal outer data"})
+// 		return
+// 	}
+
+// 	// Step 3: decode the inner "data" field, which is base64
+// 	innerBase64, ok := outer["data"].(string)
+// 	if !ok {
+// 		n.logger.With(LogParams{"decoded": outer}).Debug("inner 'data' field missing or not a string")
+// 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid inner data format"})
+// 		return
+// 	}
+
+// 	decodedLevel2, err := base64.StdEncoding.DecodeString(innerBase64)
+// 	if err != nil {
+// 		n.logger.With(LogParams{"error": err.Error(), "data": innerBase64}).Debug("base64 decode error (level 2)")
+// 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid inner base64 data"})
+// 		return
+// 	}
+
+// 	// Step 4: unmarshal decodedLevel2 (this is your actual protobuf JSON)
+// 	var parsedMessage map[string]interface{}
+// 	if err := json.Unmarshal(decodedLevel2, &parsedMessage); err != nil {
+// 		n.logger.With(LogParams{
+// 			"error": err.Error(),
+// 			"data":  string(decodedLevel2),
+// 		}).Debug("Failed to unmarshal final message")
+// 		c.JSON(http.StatusBadRequest, gin.H{"error": "failed to parse inner data field"})
+// 		return
+// 	}
+
+// 	// parsedMessage := make(map[string]interface{})
+// 	// if err := json.Unmarshal([]byte(m.Data), &parsedMessage); err != nil {
+// 	// 	n.logger.With(LogParams{"error": err.Error()}).Debug("unmarshal error")
+// 	// 	c.JSON(http.StatusBadRequest, gin.H{"error": "failed to unmarshal request"})
+// 	// 	return
+// 	// }
+// 	n.logger.With(LogParams{
+// 		"from":    m.from(),
+// 		"to":      m.to(),
+// 		"message": parsedMessage,
+// 	}).Debug("received message")
+
+// 	to := m.to()
+// 	from := m.from()
+// 	m.ParsedMessage = parsedMessage
+
+// 	mKey := fmt.Sprintf("%s_%s", from, to)
+// 	n.lock.Lock()
+// 	if _, ok := n.mailboxes[mKey]; !ok {
+// 		n.mailboxes[mKey] = make([]Message, 0)
+// 	}
+// 	n.mailboxes[mKey] = append(n.mailboxes[mKey], m.Copy())
+
+// 	// n.Events.Add(sendEvent)
+// 	n.lock.Unlock()
+
+// 	c.JSON(http.StatusOK, gin.H{"message": "ok"})
+// }
+
+
+// Original code
+// func (n *Network) handleMessage(c *gin.Context) {
+// 	m := Message{}
+// 	if err := c.ShouldBindJSON(&m); err != nil {
+// 		fmt.Println(fmt.Errorf("unmarshal error: %e", err))
+// 		c.JSON(http.StatusBadRequest, gin.H{"error": "failed to unmarshal request"})
+// 		return
+// 	}
+// 	to := m.to()
+// 	from := m.from()
+// 	parsedMessage := make(map[string]interface{})
+// 	if err := json.Unmarshal([]byte(m.Data), &parsedMessage); err != nil {
+// 		c.JSON(http.StatusBadRequest, gin.H{"error": "failed to unmarshal request"})
+// 		return
+// 	}
+// 	n.logger.With(LogParams{"message": parsedMessage}).Debug("received message")
+// 	m.ParsedMessage = parsedMessage
+// 	// sendEvent := Event{
+// 	// 	Name:   "SendMessage",
+// 	// 	Node:   from,
+// 	// 	Params: n.getMessageEventParams(m),
+// 	// }
+
+// 	mKey := fmt.Sprintf("%s_%s", from, to)
+// 	n.lock.Lock()
+// 	_, ok := n.mailboxes[mKey]
+// 	if !ok {
+// 		n.mailboxes[mKey] = make([]Message, 0)
+// 	}
+// 	n.mailboxes[mKey] = append(n.mailboxes[mKey], m.Copy())
+// 	// n.Events.Add(sendEvent)
+// 	n.lock.Unlock()
+
+// 	c.JSON(http.StatusOK, gin.H{"message": "ok"})
+// }
 
 func (n *Network) handleReplica(c *gin.Context) {
 	replica := make(map[string]interface{})
@@ -194,9 +335,20 @@ func (n *Network) handleReplica(c *gin.Context) {
 }
 
 func (n *Network) handleEvent(c *gin.Context) {
-	event := make(map[string]interface{})
-	if err := c.ShouldBindJSON(&event); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "failed to unmarshal request"})
+	// event := make(map[string]interface{})
+	// if err := c.ShouldBindJSON(&event); err != nil {
+	// 	c.JSON(http.StatusBadRequest, gin.H{"error": "failed to unmarshal request"})
+	// 	return
+	// }
+	body, err := io.ReadAll(c.Request.Body)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "failed to read body"})
+		return
+	}
+
+	event, err := decodePossiblyDoubleEncodedJSON(body)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "failed to decode body to JSON"})
 		return
 	}
 
@@ -212,11 +364,7 @@ func (n *Network) handleEvent(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"message": "ok"})
 		return
 	}
-	nodeID = nodeIDS // nodeID, err := strconv.Atoi(nodeIDS)
-	// if err != nil {
-	// 	c.JSON(http.StatusOK, gin.H{"message": "ok"})
-	// 	return
-	// }
+	nodeID = nodeIDS
 
 	eventTypeI, ok := event["type"]
 	if !ok {
@@ -239,6 +387,23 @@ func (n *Network) handleEvent(c *gin.Context) {
 	n.Events.Add(e)
 	n.lock.Unlock()
 	c.JSON(http.StatusOK, gin.H{"message": "ok"})
+}
+
+func decodePossiblyDoubleEncodedJSON(data []byte) (map[string]interface{}, error) {
+	var outer interface{}
+	if err := json.Unmarshal(data, &outer); err != nil {
+		return nil, err
+	}
+	switch v := outer.(type) {
+	case string:
+		var inner map[string]interface{}
+		err := json.Unmarshal([]byte(v), &inner)
+		return inner, err
+	case map[string]interface{}:
+		return v, nil
+	default:
+		return nil, fmt.Errorf("unexpected JSON type")
+	}
 }
 
 func (n *Network) mapEventToParams(t string, e map[string]interface{}) map[string]interface{} {
@@ -309,10 +474,10 @@ func (n *Network) getMessageEventParams(m Message) map[string]interface{} {
 			if !ok {
 				continue
 			}
-			
+
 			entries = append(entries, entry{
 				Term: int(eTermI.(float64)),
-				Data: strconv.Itoa(n.getRequestNumber(data)), 
+				Data: strconv.Itoa(n.getRequestNumber(data)),
 			})
 		}
 		params["entries"] = entries
@@ -425,9 +590,19 @@ func (n *Network) Schedule(from, to string, maxMessages int) {
 	mKey := fmt.Sprintf("%s_%s", from, to)
 	n.lock.Lock()
 	mailbox, ok := n.mailboxes[mKey]
+
+	// n.logger.With(LogParams{
+	// 	"mKey":   mKey,
+	// 	"buffer": mailbox,
+	// }).Debug("Message buffer")
+
 	if ok {
 		offset := 0
 		for i, m := range mailbox {
+			// n.logger.With(LogParams{
+			// 	"index":   i,
+			// 	"message": m,
+			// }).Debug("Selecting message")
 			if i < maxMessages {
 				messagesToSend = append(messagesToSend, m.Copy())
 				offset = i

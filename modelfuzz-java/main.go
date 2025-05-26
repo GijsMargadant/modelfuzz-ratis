@@ -19,7 +19,7 @@ func main() {
 	// for i := 0; i <= 2; i++ {
 	config := FuzzerConfig{
 		// TimeBudget:			60,
-		Horizon:           200,
+		Horizon:           20,
 		Iterations:        1,
 		NumNodes:          numNodes,
 		LogLevel:          logLevel,
@@ -29,7 +29,7 @@ func main() {
 		SeedPopulation:    20,
 		NumRequests:       3,
 		NumCrashes:        0,
-		MaxMessages:       5,
+		MaxMessages:       1,
 		ReseedFrequency:   200,
 		RandomSeed:        seed,
 

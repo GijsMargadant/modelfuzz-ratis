@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"errors"
+
 	// "fmt"
 	"log"
 	"os"
@@ -93,7 +94,7 @@ func (x *RatisNode) Create() {
 	// for i := 1; i <= x.config.NumNodes; i++ {
 	// 	serverArgs = append(serverArgs, fmt.Sprintf("%d,localhost,%d", i, x.config.BaseGroupPort+i))
 	// }
-	x.logger.With(LogParams{"server-args": strings.Join(serverArgs, "")}).Debug("Creating server...")
+	x.logger.With(LogParams{"server-args": strings.Join(serverArgs, " ")}).Debug("Creating server...")
 
 	x.process = exec.Command("java", serverArgs...)
 	// x.process.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
@@ -207,5 +208,6 @@ func (c *RatisClient) SendRequest() {
 		// syscall.Kill(-process.Process.Pid, syscall.SIGKILL)
 		KillProcessGroup(process.Process.Pid) // platform independent
 	default:
+		c.logger.Debug("Send request default (Have we succeeded?)")
 	}
 }
