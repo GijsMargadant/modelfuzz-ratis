@@ -78,6 +78,7 @@ func (t *TLCStateGuider) Check(iter string, trace *Trace, eventTrace *EventTrace
 	numNewStates := 0
 	if tlcStates, err := t.tlcClient.SendTrace(eventTrace); err == nil {
 
+		tlcStates = parseTLCStateTrace(tlcStates)
 		if len(tlcStates) > 0 {
 			path := make(Path, len(tlcStates))
 			for i, s := range tlcStates {
