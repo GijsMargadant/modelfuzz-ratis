@@ -255,7 +255,6 @@ func (n *Network) handleMessage(c *gin.Context) {
 // 	c.JSON(http.StatusOK, gin.H{"message": "ok"})
 // }
 
-
 // Original code
 // func (n *Network) handleMessage(c *gin.Context) {
 // 	m := Message{}
@@ -463,24 +462,24 @@ func (n *Network) getMessageEventParams(m Message) map[string]interface{} {
 	case "append_entries_request":
 		params["type"] = "MsgApp"
 		params["log_term"] = m.ParsedMessage["prev_log_term"]
-		entries := make([]entry, 0)
-		for _, eI := range m.ParsedMessage["entries"].([]interface{}) {
-			e := eI.(map[string]interface{})
-			data := e["data"].(string)
-			if data == "" {
-				continue
-			}
-			eTermI, ok := e["term"]
-			if !ok {
-				continue
-			}
+		// entries := make([]entry, 0)
+		// for _, eI := range m.ParsedMessage["entries"].([]interface{}) {
+		// 	e := eI.(map[string]interface{})
+		// 	data := e["data"].(string)
+		// 	if data == "" {
+		// 		continue
+		// 	}
+		// 	eTermI, ok := e["term"]
+		// 	if !ok {
+		// 		continue
+		// 	}
 
-			entries = append(entries, entry{
-				Term: int(eTermI.(float64)),
-				Data: strconv.Itoa(n.getRequestNumber(data)),
-			})
-		}
-		params["entries"] = entries
+		// 	entries = append(entries, entry{
+		// 		Term: int(eTermI.(float64)),
+		// 		Data: strconv.Itoa(n.getRequestNumber(data)),
+		// 	})
+		// }
+		// params["entries"] = entries
 		params["index"] = m.ParsedMessage["prev_log_idx"]
 		if m.ParsedMessage["prev_log_idx"] == nil {
 			params["index"] = 0
@@ -591,18 +590,9 @@ func (n *Network) Schedule(from, to string, maxMessages int) {
 	n.lock.Lock()
 	mailbox, ok := n.mailboxes[mKey]
 
-	// n.logger.With(LogParams{
-	// 	"mKey":   mKey,
-	// 	"buffer": mailbox,
-	// }).Debug("Message buffer")
-
 	if ok {
 		offset := 0
 		for i, m := range mailbox {
-			// n.logger.With(LogParams{
-			// 	"index":   i,
-			// 	"message": m,
-			// }).Debug("Selecting message")
 			if i < maxMessages {
 				messagesToSend = append(messagesToSend, m.Copy())
 				offset = i
@@ -632,10 +622,22 @@ func (n *Network) Schedule(from, to string, maxMessages int) {
 
 	for _, m := range messagesToSend {
 		go func(m Message, addr string, client *http.Client) {
-			bs, err := json.Marshal(m)
+			msg := map[string]interface{}{
+				"from":   m.From,
+				"to":     m.To,
+				"type":   m.Type,
+				"data":   m.Data,
+				"params": m.ParsedMessage,
+			}
+			jsonBytes, err := json.Marshal(msg)
 			if err != nil {
 				return
 			}
+			escaped, err := json.Marshal(string(jsonBytes))
+			if err != nil {
+				return
+			}
+			bs := escaped
 			n.logger.With(LogParams{
 				"message": string(bs),
 			}).Debug("sending message to: " + "http://" + addr + "/schedule_" + from)

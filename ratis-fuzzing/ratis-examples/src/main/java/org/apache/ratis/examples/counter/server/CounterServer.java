@@ -92,9 +92,9 @@ public final class CounterServer implements Closeable {
     InterceptorConfigKeys.setEnabled(properties, true);
     InterceptorConfigKeys.setEnableRegister(properties, restart == 0);
     RaftServerConfigKeys.Rpc.setFirstElectionTimeoutMin(properties, TimeDuration.valueOf(300, TimeUnit.MILLISECONDS));
-    RaftServerConfigKeys.Rpc.setFirstElectionTimeoutMax(properties, TimeDuration.valueOf(300, TimeUnit.MILLISECONDS));
+    RaftServerConfigKeys.Rpc.setFirstElectionTimeoutMax(properties, TimeDuration.valueOf(5, TimeUnit.SECONDS));
     RaftServerConfigKeys.Rpc.setTimeoutMin(properties, TimeDuration.valueOf(300, TimeUnit.MILLISECONDS));
-    RaftServerConfigKeys.Rpc.setTimeoutMax(properties, TimeDuration.valueOf(300, TimeUnit.MILLISECONDS));
+    RaftServerConfigKeys.Rpc.setTimeoutMax(properties, TimeDuration.valueOf(2, TimeUnit.SECONDS));
     RaftServerConfigKeys.LeaderElection.setPreVote(properties, false);
     // GrpcConfigKeys.Server.setPort(properties, port);
 
