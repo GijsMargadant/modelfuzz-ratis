@@ -462,24 +462,24 @@ func (n *Network) getMessageEventParams(m Message) map[string]interface{} {
 	case "append_entries_request":
 		params["type"] = "MsgApp"
 		params["log_term"] = m.ParsedMessage["prev_log_term"]
-		// entries := make([]entry, 0)
-		// for _, eI := range m.ParsedMessage["entries"].([]interface{}) {
-		// 	e := eI.(map[string]interface{})
-		// 	data := e["data"].(string)
-		// 	if data == "" {
-		// 		continue
-		// 	}
-		// 	eTermI, ok := e["term"]
-		// 	if !ok {
-		// 		continue
-		// 	}
+		entries := make([]entry, 0)
+		for _, eI := range m.ParsedMessage["entries"].(map[string]interface{}) {
+			e := eI.(map[string]interface{})
+			data := e["data"].(string)
+			if data == "" {
+				continue
+			}
+			eTermI, ok := e["term"]
+			if !ok {
+				continue
+			}
 
-		// 	entries = append(entries, entry{
-		// 		Term: int(eTermI.(float64)),
-		// 		Data: strconv.Itoa(n.getRequestNumber(data)),
-		// 	})
-		// }
-		// params["entries"] = entries
+			entries = append(entries, entry{
+				Term: int(eTermI.(float64)),
+				Data: strconv.Itoa(n.getRequestNumber(data)),
+			})
+		}
+		params["entries"] = entries
 		params["index"] = m.ParsedMessage["prev_log_idx"]
 		if m.ParsedMessage["prev_log_idx"] == nil {
 			params["index"] = 0
@@ -500,13 +500,13 @@ func (n *Network) getMessageEventParams(m Message) map[string]interface{} {
 		params["index"] = m.ParsedMessage["last_log_idx"]
 		params["commit"] = 0
 		params["reject"] = false
-	case "request_vote_response":
+	case "request_vote_reply":
 		params["type"] = "MsgVoteResp"
 		params["log_term"] = 0
 		params["entries"] = []entry{}
 		params["index"] = 0
 		params["commit"] = 0
-		params["reject"] = int(m.ParsedMessage["vote_granted"].(float64)) == 0
+		params["reject"] = int(m.ParsedMessage["reject"].(float64)) == 0
 	}
 	return params
 }
