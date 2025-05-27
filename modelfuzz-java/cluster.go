@@ -56,6 +56,7 @@ type ClusterConfig struct {
 	BaseServicePort     int
 	BaseInterceptorPort int
 	SchedulerPort       int
+	RatisDataDir        string
 	WorkDir             string
 	LogLevel            string
 }
@@ -73,6 +74,7 @@ func (c *ClusterConfig) Copy() *ClusterConfig {
 		BaseServicePort:     c.BaseServicePort,
 		BaseInterceptorPort: c.BaseInterceptorPort,
 		SchedulerPort:       c.SchedulerPort,
+		RatisDataDir:        c.RatisDataDir,
 		WorkDir:             c.WorkDir,
 		LogLevel:            c.LogLevel,
 	}
@@ -200,6 +202,7 @@ func (c *Cluster) Destroy() error {
 		node.Cleanup()
 	}
 
+	os.RemoveAll(c.Config.RatisDataDir)
 	os.RemoveAll(c.Config.WorkDir)
 	return err
 }

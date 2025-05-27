@@ -42,6 +42,7 @@ type FuzzerConfig struct {
 	LogLevel       string
 	NetworkPort    int
 	BaseWorkingDir string
+	RatisDataDir   string
 
 	MutationsPerTrace int
 	SeedPopulation    int
@@ -129,6 +130,7 @@ func (f *Fuzzer) Run() {
 
 		// Start cluster
 		f.config.ClusterConfig.WorkDir = path.Join(workDir, "cluster")
+		f.config.ClusterConfig.RatisDataDir = f.config.RatisDataDir
 		f.config.ClusterConfig.ClusterID = iter
 		f.config.ClusterConfig.SchedulerPort = f.config.NetworkPort
 		cluster := NewCluster(f.config.ClusterConfig, f.logger.With(LogParams{"type": "cluster"}))

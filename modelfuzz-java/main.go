@@ -24,6 +24,7 @@ func main() {
 		NumNodes:          numNodes,
 		LogLevel:          logLevel,
 		NetworkPort:       7074,                             // + i,
+		RatisDataDir:      "./data",
 		BaseWorkingDir:    "./output/" + ModelFuzz.String(), // FuzzerType(i).String(),
 		MutationsPerTrace: 3,
 		SeedPopulation:    20,
