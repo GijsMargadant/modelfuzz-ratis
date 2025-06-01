@@ -190,9 +190,10 @@ func (c *RatisClient) SendRequest() {
 		c.RatisLog4jConfig,
 		"-cp",
 		c.ClientBinary,
+		"org.apache.ratis.examples.counter.client.CounterClient",
 		"1",
 		c.PeerAddresses,
-		"02511d47-d67c-49a3-9011-abb3109a44c1", // TODO - May need it as param
+		"02511d47-d67c-49a3-9011-abb3109a44c1",
 	}
 	// for i := 1; i <= c.NumNodes; i++ {
 	// 	clientArgs = append(clientArgs, fmt.Sprintf("%d,localhost,%d", i, c.BaseServicePort+i))
