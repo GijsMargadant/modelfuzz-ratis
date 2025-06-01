@@ -353,13 +353,15 @@ func (n *Network) handleEvent(c *gin.Context) {
 
 	n.logger.With(LogParams{"event": event}).Debug("received event")
 	nodeID := "1"
-	nodeIDI, ok := event["node"]
+	nodeIDI, ok := event["server_id"]
 	if !ok {
+		n.logger.Debug("Could not find server_id")
 		c.JSON(http.StatusOK, gin.H{"message": "ok"})
 		return
 	}
 	nodeIDS, ok := nodeIDI.(string)
 	if !ok {
+		n.logger.Debug("Could not cast server_id")
 		c.JSON(http.StatusOK, gin.H{"message": "ok"})
 		return
 	}
@@ -367,11 +369,13 @@ func (n *Network) handleEvent(c *gin.Context) {
 
 	eventTypeI, ok := event["type"]
 	if !ok {
+		n.logger.Debug("Could not find type")
 		c.JSON(http.StatusOK, gin.H{"message": "ok"})
 		return
 	}
 	eventType, ok := eventTypeI.(string)
 	if !ok {
+		n.logger.Debug("Could not cast type")
 		c.JSON(http.StatusOK, gin.H{"message": "ok"})
 		return
 	}
@@ -382,6 +386,7 @@ func (n *Network) handleEvent(c *gin.Context) {
 		Params: n.mapEventToParams(eventType, event),
 	}
 
+	n.logger.With(LogParams{"e": e}).Debug("Appending event")
 	n.lock.Lock()
 	n.Events.Add(e)
 	n.lock.Unlock()
@@ -433,6 +438,10 @@ func (n *Network) mapEventToParams(t string, e map[string]interface{}) map[strin
 		node, _ := strconv.Atoi(eParams["node"].(string))
 		params["node"] = node
 		params["snapshot_index"] = int(eParams["snapshot_index"].(float64))
+	// case "AdvanceCommitIndex":
+	// 	node, _ := strconv.Atoi(eParams["server_id"].(string))
+	// 	params["node"] = node
+	// 	params["i"] = node
 	default:
 		params = eParams
 	}
@@ -486,7 +495,7 @@ func (n *Network) getMessageEventParams(m Message) map[string]interface{} {
 		}
 		params["commit"] = m.ParsedMessage["leader_commit"]
 		params["reject"] = false
-	case "append_entries_response":
+	case "append_entries_reply":
 		params["type"] = "MsgAppResp"
 		params["log_term"] = 0
 		params["entries"] = []entry{}
