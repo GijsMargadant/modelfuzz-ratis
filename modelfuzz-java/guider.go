@@ -5,8 +5,10 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"fmt"
 	"os"
 	"path"
+	"path/filepath"
 	"strings"
 )
 
@@ -15,16 +17,22 @@ type Guider interface {
 	Coverage() int
 	// BranchCoverage() int
 	Reset()
-
-	DumpPaths(filePath string) error
-	Paths() Paths
 }
 
-func NewGuider(fuzzerType FuzzerType, addr, recordPath string) Guider {
+func NewGuider(fuzzerType FuzzerType, addr, recordPath string, config ClusterConfig) Guider {
 	if fuzzerType == ModelFuzz || fuzzerType == RandomFuzzer {
 		return NewTLCStateGuider(addr, recordPath)
 	} else if fuzzerType == TraceFuzzer {
 		return NewTraceCoverageGuider(addr, recordPath)
+	} else if fuzzerType == CodeCoverageFuzzer {
+		workingDir := "./code_coverage"
+		os.RemoveAll(workingDir)
+		if config.ServerType == Ratis {
+			return NewCodeCoverageGuider(workingDir, config.jacocoLib, config.RatisServerPath)
+		} else {
+			fmt.Println("Code coverage Guider has not been tested on anything other then Ratis")
+			return NewCodeCoverageGuider(workingDir, config.jacocoLib, config.XraftServerPath)
+		}
 	} else {
 		return nil
 	}
@@ -64,14 +72,6 @@ func (t *TLCStateGuider) Reset() {
 func (t *TLCStateGuider) Coverage() int {
 	return len(t.statesMap)
 }
-
-// func (t *TLCStateGuider) BranchCoverage() int {
-// 	branches, err := getBranches(t.objectPath, t.gCovProgramPath)
-// 	if err != nil {
-// 		return 0
-// 	}
-// 	return len(branches)
-// }
 
 func (t *TLCStateGuider) Check(iter string, trace *Trace, eventTrace *EventTrace, record bool) (bool, int) {
 
@@ -240,3 +240,121 @@ func newEventTrace(events *EventTrace) *eventTrace {
 	}
 	return eTrace
 }
+
+type CodeCoverageGuider struct {
+	outputDir string
+	jacocoCli string
+	jar       string
+}
+
+func NewCodeCoverageGuider(recordPath string, jacocoLib string, jar string) *CodeCoverageGuider {
+	return &CodeCoverageGuider{
+		outputDir: recordPath,
+		jacocoCli: filepath.Join(jacocoLib, "jacococli.jar"),
+		jar:       jar,
+	}
+}
+
+// Iteration coverage
+func (c *CodeCoverageGuider) Check(iter string, trace *Trace, eventTrace *EventTrace, record bool) (bool, int) {
+	baseDir := c.outputDir
+	clusterDir := filepath.Join(baseDir, "cluster")
+
+	// Get coverage files from all nodes and from the previous iteration
+	iterationCoverageFiles, err := GetJacocoFiles(clusterDir)
+	if err != nil {
+		panic("Unable to obtain jacoco coverage files: " + string(err.Error()))
+	}
+	if len(iterationCoverageFiles) == 0 {
+		panic("Unable to obtain any jacoco coverage files")
+	}
+	previousCoverageFile := filepath.Join(baseDir, "jacoco.exec")
+	coverageFiles := iterationCoverageFiles
+	if _, err := os.Stat(previousCoverageFile); err == nil {
+		coverageFiles = append(iterationCoverageFiles, previousCoverageFile)
+	}
+
+	for _, f := range coverageFiles {
+		generateJacocoReport(c.jacocoCli, c.jar, f, filepath.Join(filepath.Dir(f), "report.html"))
+	}
+
+	// Merge all available coverage data
+	newCoverageFile := filepath.Join(clusterDir, "jacoco.exec")
+	err = MergeCoverageFiles(c.jacocoCli, coverageFiles, newCoverageFile)
+	if err != nil {
+		panic("Error while merging coverage files: " + string(err.Error()))
+	}
+
+	// Generate coverage report
+	newCoverageReport := filepath.Join(clusterDir, "report.xml")
+	err = generateJacocoReport(c.jacocoCli, c.jar, newCoverageFile, newCoverageReport)
+	if err != nil {
+		panic("Error while obtaining coverage report: " + string(err.Error()))
+	}
+
+	previousCoverageReport := filepath.Join(baseDir, "report.xml")
+	coverageIncrease := 0
+	if _, err := os.Stat(previousCoverageReport); os.IsNotExist(err) {
+		// First iteration, no previous coverage report exists
+		coverage, err := lineCoverage(newCoverageReport)
+		if err != nil {
+			panic("Error while extracting first iteration code coverage: " + string(err.Error()))
+		}
+		coverageIncrease = coverage
+	} else {
+		coverage, err := ComputeCoverageIncrease(newCoverageReport, previousCoverageReport)
+		if err != nil {
+			panic("Error while computing code coverage increase: " + string(err.Error()))
+		}
+		coverageIncrease = coverage
+	}
+
+	err = copyFile(newCoverageFile, previousCoverageFile)
+	if err != nil {
+		panic("Failed to update global coverage file: " + err.Error())
+	}
+	err = copyFile(newCoverageReport, previousCoverageReport)
+	if err != nil {
+		panic("Failed to update global report file: " + err.Error())
+	}
+	// os.RemoveAll(clusterDir)
+
+	htmlReport := filepath.Join(baseDir, "report.html")
+	coverageFile := filepath.Join(baseDir, "jacoco.exec")
+	err = generateJacocoReport(c.jacocoCli, c.jar, coverageFile, htmlReport)
+	if err != nil {
+		panic("Error while obtaining coverage report: " + string(err.Error()))
+	}
+
+	return coverageIncrease != 0, coverageIncrease
+}
+
+func copyFile(src, dst string) error {
+	input, err := os.ReadFile(src)
+	if err != nil {
+		return err
+	}
+	return os.WriteFile(dst, input, 0644)
+}
+
+// Current total coverage
+func (c *CodeCoverageGuider) Coverage() int {
+	report := filepath.Join(c.outputDir, "report.xml")
+	if _, err := os.Stat(report); os.IsNotExist(err) {
+		panic("No coverage report found")
+	}
+
+	coverage, err := lineCoverage(report)
+	if err != nil {
+		panic("Unable to extract line coverage from report")
+	}
+
+	return coverage
+}
+
+func (c *CodeCoverageGuider) Reset() {
+	os.Remove(filepath.Join(c.outputDir, "report.xml"))
+	os.Remove(filepath.Join(c.outputDir, "jacoco.exec"))
+}
+
+var _ Guider = &CodeCoverageGuider{}

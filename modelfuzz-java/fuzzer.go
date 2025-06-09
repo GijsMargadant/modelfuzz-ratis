@@ -15,9 +15,10 @@ import (
 type FuzzerType int
 
 const (
-	RandomFuzzer FuzzerType = 0
-	ModelFuzz    FuzzerType = 1
-	TraceFuzzer  FuzzerType = 2
+	RandomFuzzer       FuzzerType = 0
+	ModelFuzz          FuzzerType = 1
+	TraceFuzzer        FuzzerType = 2
+	CodeCoverageFuzzer FuzzerType = 3
 )
 
 func (ft FuzzerType) String() string {
@@ -28,6 +29,8 @@ func (ft FuzzerType) String() string {
 		return "random"
 	case TraceFuzzer:
 		return "trace"
+	case CodeCoverageFuzzer:
+		return "code"
 	default:
 		return fmt.Sprintf("%d", int(ft))
 	}
@@ -92,7 +95,8 @@ func NewFuzzer(config FuzzerConfig, fuzzerType FuzzerType) (*Fuzzer, error) {
 	ctx, _ := context.WithCancel(context.Background())
 	f.network = NewNetwork(ctx, config.NetworkPort, f.logger.With(LogParams{"type": "network"}))
 	addr := fmt.Sprintf("localhost:%d", config.TLCPort)
-	f.guider = NewGuider(fuzzerType, addr, config.BaseWorkingDir)
+	f.logger.Debug("Creating guider for fuzzer: " + fuzzerType.String())
+	f.guider = NewGuider(fuzzerType, addr, config.BaseWorkingDir, *config.ClusterConfig)
 	f.mutator = CombineMutators(NewSwapCrashNodeMutator(1, f.random), NewSwapNodeMutator(20, f.random), NewSwapMaxMessagesMutator(20, f.random))
 	f.logger.Debug("Initialized fuzzer")
 
@@ -322,15 +326,15 @@ func (f *Fuzzer) Run() {
 	writer.Flush()
 
 	//  --- store & print paths ---
-	pathsFile := path.Join(f.config.BaseWorkingDir, "paths.json")
-	if err := f.guider.DumpPaths(pathsFile); err != nil {
-		f.logger.Error(fmt.Sprintf("failed to write paths: %v", err))
-	} else {
-		f.logger.Info(fmt.Sprintf("state paths written to %s", pathsFile))
-		for i, p := range f.guider.Paths() {
-			f.logger.Info(fmt.Sprintf("Path %d: %v", i, p))
-		}
-	}
+	// pathsFile := path.Join(f.config.BaseWorkingDir, "paths.json")
+	// if err := f.guider.DumpPaths(pathsFile); err != nil {
+	// 	f.logger.Error(fmt.Sprintf("failed to write paths: %v", err))
+	// } else {
+	// 	f.logger.Info(fmt.Sprintf("state paths written to %s", pathsFile))
+	// 	for i, p := range f.guider.Paths() {
+	// 		f.logger.Info(fmt.Sprintf("Path %d: %v", i, p))
+	// 	}
+	// }
 }
 
 func (f *Fuzzer) GenerateRandom() *Trace {

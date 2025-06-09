@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"path"
+	"path/filepath"
 
 	// "fmt"
 	"log"
@@ -36,7 +38,20 @@ func NewRatisNode(config *NodeConfig, logger *Logger) *RatisNode {
 }
 
 func (x *RatisNode) Create() {
-	serverArgs := []string{
+	serverArgs := []string{}
+
+	if x.config.trackCodeCoverage {
+		workingDir := "./code_coverage"
+		outputDir := path.Join(workingDir, "cluster", x.ID)
+		os.MkdirAll(outputDir, 0777)
+		outputFile := filepath.Join(outputDir, "jacoco.exec")
+
+		serverArgs = append(serverArgs, fmt.Sprintf(
+			"-javaagent:%s=destfile=%s,append=true,output=file",
+			x.config.jacocoAgentPath, outputFile))
+	}
+
+	serverArgs = append(serverArgs,
 		x.config.LogConfig,
 		"-cp",
 		x.config.ServerPath,
@@ -46,12 +61,9 @@ func (x *RatisNode) Create() {
 		strconv.Itoa(x.config.InterceptorPort),
 		x.config.NodeId,
 		x.config.PeerAddresses,
-		"02511d47-d67c-49a3-9011-abb3109a44c1", // TODO - May need to cycle
+		"02511d47-d67c-49a3-9011-abb3109a44c1",
 		"0",
-	}
-	// for i := 1; i <= x.config.NumNodes; i++ {
-	// 	serverArgs = append(serverArgs, fmt.Sprintf("%d,localhost,%d", i, x.config.BaseGroupPort+i))
-	// }
+	)
 	x.logger.With(LogParams{"server-args": strings.Join(serverArgs, " ")}).Debug("Creating server...")
 
 	x.process = exec.Command("java", serverArgs...)

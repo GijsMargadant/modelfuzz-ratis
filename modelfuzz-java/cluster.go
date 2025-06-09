@@ -28,18 +28,20 @@ type Client interface {
 }
 
 type NodeConfig struct {
-	ClusterID       int
-	GroupPort       int
-	BaseGroupPort   int
-	ServicePort     int
-	InterceptorPort int
-	SchedulerPort   int
-	NodeId          string
-	WorkDir         string
-	ServerPath      string
-	NumNodes        int
-	LogConfig       string
-	PeerAddresses   string
+	ClusterID         int
+	GroupPort         int
+	BaseGroupPort     int
+	ServicePort       int
+	InterceptorPort   int
+	SchedulerPort     int
+	NodeId            string
+	WorkDir           string
+	ServerPath        string
+	NumNodes          int
+	LogConfig         string
+	PeerAddresses     string
+	trackCodeCoverage bool
+	jacocoAgentPath   string
 }
 
 type ClusterConfig struct {
@@ -59,6 +61,7 @@ type ClusterConfig struct {
 	RatisDataDir        string
 	WorkDir             string
 	LogLevel            string
+	jacocoLib           string
 }
 
 func (c *ClusterConfig) Copy() *ClusterConfig {
@@ -77,6 +80,7 @@ func (c *ClusterConfig) Copy() *ClusterConfig {
 		RatisDataDir:        c.RatisDataDir,
 		WorkDir:             c.WorkDir,
 		LogLevel:            c.LogLevel,
+		jacocoLib:           c.jacocoLib,
 	}
 }
 
@@ -127,18 +131,20 @@ func (c *ClusterConfig) GetNodeConfig(id string, nodeType NodeType) *NodeConfig 
 	}
 
 	return &NodeConfig{
-		ClusterID:       c.ClusterID,
-		GroupPort:       c.BaseGroupPort + idInt,
-		BaseGroupPort:   c.BaseGroupPort,
-		ServicePort:     c.BaseServicePort + idInt,
-		InterceptorPort: c.BaseInterceptorPort + idInt,
-		SchedulerPort:   c.SchedulerPort,
-		NodeId:          id,
-		WorkDir:         nodeWorkDir,
-		ServerPath:      serverPath,
-		NumNodes:        c.NumNodes,
-		LogConfig:       logConfig,
-		PeerAddresses:   peerAddresses,
+		ClusterID:         c.ClusterID,
+		GroupPort:         c.BaseGroupPort + idInt,
+		BaseGroupPort:     c.BaseGroupPort,
+		ServicePort:       c.BaseServicePort + idInt,
+		InterceptorPort:   c.BaseInterceptorPort + idInt,
+		SchedulerPort:     c.SchedulerPort,
+		NodeId:            id,
+		WorkDir:           nodeWorkDir,
+		ServerPath:        serverPath,
+		NumNodes:          c.NumNodes,
+		LogConfig:         logConfig,
+		PeerAddresses:     peerAddresses,
+		trackCodeCoverage: strings.Contains(strings.ToLower((c.FuzzerType.String())), "code"),
+		jacocoAgentPath:   path.Join(c.jacocoLib, "jacocoagent.jar"),
 	}
 }
 

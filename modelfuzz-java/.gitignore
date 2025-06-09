@@ -26,6 +26,7 @@ go.work.sum
 
 output/
 data/
+code_coverage/
 
 modelfuzz-xraft
 modelfuzz-java

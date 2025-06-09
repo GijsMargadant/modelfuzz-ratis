@@ -10,6 +10,7 @@ import (
 func main() {
 	logLevel := "DEBUG"
 	numNodes := 3
+	fuzzerType := CodeCoverageFuzzer
 
 	argsWithoutProg := os.Args[1:]
 	seed, _ := strconv.Atoi(argsWithoutProg[0])
@@ -19,11 +20,11 @@ func main() {
 	// for i := 0; i <= 2; i++ {
 	config := FuzzerConfig{
 		// TimeBudget:			60,
-		Horizon:           200,
+		Horizon:           50,
 		Iterations:        1,
 		NumNodes:          numNodes,
 		LogLevel:          logLevel,
-		NetworkPort:       7074,                             // + i,
+		NetworkPort:       7074, // + i,
 		RatisDataDir:      "./data",
 		BaseWorkingDir:    "./output/" + ModelFuzz.String(), // FuzzerType(i).String(),
 		MutationsPerTrace: 3,
@@ -35,7 +36,7 @@ func main() {
 		RandomSeed:        seed,
 
 		ClusterConfig: &ClusterConfig{
-			FuzzerType:          ModelFuzz, // FuzzerType(i),
+			FuzzerType:          fuzzerType, // FuzzerType(i),
 			NumNodes:            numNodes,
 			ServerType:          Ratis,
 			XraftServerPath:     "../xraft-controlled/xraft-kvstore/target/xraft-kvstore-0.1.0-SNAPSHOT-bin/xraft-kvstore-0.1.0-SNAPSHOT/bin/xraft-kvstore",
@@ -43,6 +44,7 @@ func main() {
 			RatisServerPath:     "../ratis-fuzzing/ratis-examples/target/ratis-examples-2.5.1.jar",
 			RatisClientPath:     "../ratis-fuzzing/ratis-examples/target/ratis-examples-2.5.1.jar",
 			RatisLog4jConfig:    "-Dlog4j.configuration=file:../ratis-fuzzing/ratis-examples/src/main/resources/log4j.properties",
+			jacocoLib:           "../jacoco/lib",
 			BaseGroupPort:       2330 + ((numNodes + 1) * 100), //(i * (numNodes + 1) * 100),
 			BaseServicePort:     3330 + ((numNodes + 1) * 100), //(i * (numNodes + 1) * 100),
 			BaseInterceptorPort: 7000 + ((numNodes + 1) * 100), //(i * (numNodes + 1) * 100),
@@ -56,7 +58,7 @@ func main() {
 	}
 	os.MkdirAll(config.BaseWorkingDir, 0777)
 
-	fuzzer, err := NewFuzzer(config, ModelFuzz)
+	fuzzer, err := NewFuzzer(config, fuzzerType)
 	if err != nil {
 		fmt.Errorf("Could not create fuzzer %e", err)
 		return
