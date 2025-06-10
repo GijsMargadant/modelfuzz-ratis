@@ -23,7 +23,7 @@ func main() {
 		Iterations:        1,
 		NumNodes:          numNodes,
 		LogLevel:          logLevel,
-		NetworkPort:       7074,                             // + i,
+		NetworkPort:       7074, // + i,
 		RatisDataDir:      "./data",
 		BaseWorkingDir:    "./output/" + ModelFuzz.String(), // FuzzerType(i).String(),
 		MutationsPerTrace: 3,
