@@ -33,6 +33,7 @@ func main() {
 		MaxMessages:       5,
 		ReseedFrequency:   200,
 		RandomSeed:        seed,
+		SubPathLength:     2,
 
 		ClusterConfig: &ClusterConfig{
 			FuzzerType:          ModelFuzz, // FuzzerType(i),

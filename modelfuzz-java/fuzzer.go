@@ -51,6 +51,7 @@ type FuzzerConfig struct {
 	MaxMessages       int
 	ReseedFrequency   int
 	RandomSeed        int
+	SubPathLength     int
 
 	ClusterConfig *ClusterConfig
 	TLCPort       int
@@ -92,7 +93,7 @@ func NewFuzzer(config FuzzerConfig, fuzzerType FuzzerType) (*Fuzzer, error) {
 	ctx, _ := context.WithCancel(context.Background())
 	f.network = NewNetwork(ctx, config.NetworkPort, f.logger.With(LogParams{"type": "network"}))
 	addr := fmt.Sprintf("localhost:%d", config.TLCPort)
-	f.guider = NewGuider(fuzzerType, addr, config.BaseWorkingDir)
+	f.guider = NewGuider(fuzzerType, addr, config.BaseWorkingDir, config.SubPathLength)
 	f.mutator = CombineMutators(NewSwapCrashNodeMutator(1, f.random), NewSwapNodeMutator(20, f.random), NewSwapMaxMessagesMutator(20, f.random))
 	f.logger.Debug("Initialized fuzzer")
 
@@ -330,6 +331,13 @@ func (f *Fuzzer) Run() {
 		for i, p := range f.guider.Paths() {
 			f.logger.Info(fmt.Sprintf("Path %d: %v", i, p))
 		}
+	}
+
+	subPathsFile := path.Join(f.config.BaseWorkingDir, "subpaths.json")
+	if err := f.guider.DumpSubPaths(subPathsFile); err != nil {
+		f.logger.Error(fmt.Sprintf("failed to write subpaths: %v", err))
+	} else {
+		f.logger.Info(fmt.Sprintf("state subpaths written to %s", subPathsFile))
 	}
 }
 
