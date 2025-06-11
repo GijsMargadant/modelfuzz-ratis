@@ -88,6 +88,7 @@ func (x *RatisNode) Stop() error {
 		return errors.New("ratis server not started")
 	}
 
+	KillProcessGroup(x.process.Process.Pid)
 	x.cancel()
 	x.process = nil
 	return nil
