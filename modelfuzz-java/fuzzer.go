@@ -175,7 +175,28 @@ func (f *Fuzzer) Run() {
 
 		crashCount := 0
 		requestCount := 0
+		start := time.Now()
 		for !f.network.WaitForNodes(f.config.NumNodes) {
+			if time.Since(start).Seconds() > 10 {
+				// Stop and reset cluster
+				logs := cluster.GetLogs()
+				cluster.Destroy()
+
+				// Save logs
+				filePath := workDir + "/logs.log"
+				file, err := os.Create(filePath)
+				if err != nil {
+					return
+				}
+				defer file.Close()
+				writer := bufio.NewWriter(file)
+				writer.WriteString(logs)
+				writer.Flush()
+
+				// Stop and reset network
+				f.network.Reset()
+			}
+
 			time.Sleep(1 * time.Millisecond)
 		}
 
