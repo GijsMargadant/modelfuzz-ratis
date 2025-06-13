@@ -15,7 +15,8 @@ func main() {
 	seed, _ := strconv.Atoi(argsWithoutProg[0])
 	fmt.Println("Random seed: " + argsWithoutProg[0])
 
-	fuzzerType := ModelFuzz
+	fuzzerType := KPathFuzzer
+	k := 1000
 
 	var wg sync.WaitGroup
 	// for i := 0; i <= 2; i++ {
@@ -35,7 +36,7 @@ func main() {
 		MaxMessages:       5,
 		ReseedFrequency:   200,
 		RandomSeed:        seed,
-		SubPathLength:     2,
+		SubPathLength:     k,
 
 		ClusterConfig: &ClusterConfig{
 			FuzzerType:          fuzzerType, // FuzzerType(i),

@@ -12,7 +12,6 @@ import (
 
 type KPathCoverageGuider struct {
 	tlcClient  *TLCClient
-	logger     *Logger
 	workingDir string
 	k          int
 
@@ -22,10 +21,9 @@ type KPathCoverageGuider struct {
 
 var _ Guider = &KPathCoverageGuider{}
 
-func NewKPathCoverageGuider(tlcAddr string, workingDir string, logger *Logger, k int) *KPathCoverageGuider {
+func NewKPathCoverageGuider(tlcAddr string, workingDir string, k int) *KPathCoverageGuider {
 	return &KPathCoverageGuider{
 		tlcClient:  NewTLCClient(tlcAddr),
-		logger:     logger,
 		workingDir: workingDir,
 		k:          k,
 
@@ -40,6 +38,7 @@ func (g *KPathCoverageGuider) Check(iter string, trace *Trace, eventTrace *Event
 		panic(err.Error())
 	}
 
+	tlcStates = parseTLCStateTrace(tlcStates)
 	_ = UpdateUniqueStates(g.uniqueStates, tlcStates)
 	newStates := updateUniqueKPaths(g.uniqueKPaths, tlcStates, g.k)
 
@@ -132,8 +131,14 @@ func AppendKPathCoverageToFile(dir string, coverage int) {
 	}
 }
 
+type IterationStates struct {
+	Iteration int        `json:"iteration"`
+	Number    int        `json:"number"`
+	States    []TLCState `json:"states"`
+}
+
 type UniqueStates struct {
-	States [][]TLCState `json:"states"`
+	Iterations []IterationStates `json:"iterations"`
 }
 
 func AppendNewStatesToFile(dir string, uniqueStates map[int64]string) {
@@ -146,8 +151,8 @@ func AppendNewStatesToFile(dir string, uniqueStates map[int64]string) {
 	}
 
 	known := make(map[int64]bool)
-	for _, stateList := range existing.States {
-		for _, state := range stateList {
+	for _, iteration := range existing.Iterations {
+		for _, state := range iteration.States {
 			known[state.Key] = true
 		}
 	}
@@ -159,7 +164,11 @@ func AppendNewStatesToFile(dir string, uniqueStates map[int64]string) {
 		}
 	}
 
-	existing.States = append(existing.States, newStates)
+	existing.Iterations = append(existing.Iterations, IterationStates{
+		Iteration: len(existing.Iterations),
+		Number:    len(newStates),
+		States:    newStates,
+	})
 
 	newData, err := json.MarshalIndent(existing, "", "  ")
 	if err != nil {

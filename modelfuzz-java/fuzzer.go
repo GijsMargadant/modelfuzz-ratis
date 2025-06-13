@@ -18,6 +18,7 @@ const (
 	RandomFuzzer FuzzerType = 0
 	ModelFuzz    FuzzerType = 1
 	TraceFuzzer  FuzzerType = 2
+	KPathFuzzer  FuzzerType = 3
 )
 
 func (ft FuzzerType) String() string {
@@ -28,6 +29,8 @@ func (ft FuzzerType) String() string {
 		return "random"
 	case TraceFuzzer:
 		return "trace"
+	case KPathFuzzer:
+		return "k-path"
 	default:
 		return fmt.Sprintf("%d", int(ft))
 	}
@@ -90,11 +93,10 @@ func NewFuzzer(config FuzzerConfig, fuzzerType FuzzerType) (*Fuzzer, error) {
 	}
 	os.MkdirAll(config.BaseWorkingDir, 0777)
 
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx, _ := context.WithCancel(context.Background())
 	f.network = NewNetwork(ctx, config.NetworkPort, f.logger.With(LogParams{"type": "network"}))
 	addr := fmt.Sprintf("localhost:%d", config.TLCPort)
-	f.guider = NewGuider(fuzzerType, addr, config.BaseWorkingDir, config.SubPathLength)
+	f.guider = NewGuider(fuzzerType, addr, config)
 	f.mutator = CombineMutators(NewSwapCrashNodeMutator(1, f.random), NewSwapNodeMutator(20, f.random), NewSwapMaxMessagesMutator(20, f.random))
 	f.logger.Debug("Initialized fuzzer")
 
@@ -121,7 +123,7 @@ func (f *Fuzzer) Run() {
 		}
 
 		// Set up directory
-		workDir := path.Join(f.config.BaseWorkingDir, strconv.Itoa(iter))
+		workDir := path.Join(f.config.BaseWorkingDir, "iterations", strconv.Itoa(iter))
 		if _, err := os.Stat(workDir); err == nil {
 			os.RemoveAll(workDir)
 		}
@@ -185,7 +187,7 @@ func (f *Fuzzer) Run() {
 				cluster.Destroy()
 
 				// Save logs
-				filePath := workDir + "/logs.log"
+				filePath := (workDir + "/logs.log")
 				file, err := os.Create(filePath)
 				if err != nil {
 					return
@@ -344,24 +346,6 @@ func (f *Fuzzer) Run() {
 	writer := bufio.NewWriter(file)
 	writer.Write(dataB)
 	writer.Flush()
-
-	//  --- store & print paths ---
-	// pathsFile := path.Join(f.config.BaseWorkingDir, "paths.json")
-	// if err := f.guider.DumpPaths(pathsFile); err != nil {
-	// 	f.logger.Error(fmt.Sprintf("failed to write paths: %v", err))
-	// } else {
-	// 	f.logger.Info(fmt.Sprintf("state paths written to %s", pathsFile))
-	// 	for i, p := range f.guider.Paths() {
-	// 		f.logger.Info(fmt.Sprintf("Path %d: %v", i, p))
-	// 	}
-	// }
-
-	// subPathsFile := path.Join(f.config.BaseWorkingDir, "subpaths.json")
-	// if err := f.guider.DumpSubPaths(subPathsFile); err != nil {
-	// 	f.logger.Error(fmt.Sprintf("failed to write subpaths: %v", err))
-	// } else {
-	// 	f.logger.Info(fmt.Sprintf("state subpaths written to %s", subPathsFile))
-	// }
 }
 
 func (f *Fuzzer) GenerateRandom() *Trace {
