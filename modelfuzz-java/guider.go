@@ -17,9 +17,9 @@ type Guider interface {
 	Coverage() int
 	Reset()
 
-	Paths() Paths
-	DumpPaths(filePath string) error
-	DumpSubPaths(filePath string) error
+	// Paths() Paths
+	// DumpPaths(filePath string) error
+	// DumpSubPaths(filePath string) error
 }
 
 func NewGuider(fuzzerType FuzzerType, addr, recordPath string, k int) Guider {

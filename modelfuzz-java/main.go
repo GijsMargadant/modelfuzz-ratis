@@ -15,6 +15,8 @@ func main() {
 	seed, _ := strconv.Atoi(argsWithoutProg[0])
 	fmt.Println("Random seed: " + argsWithoutProg[0])
 
+	fuzzerType := ModelFuzz
+
 	var wg sync.WaitGroup
 	// for i := 0; i <= 2; i++ {
 	config := FuzzerConfig{
@@ -25,7 +27,7 @@ func main() {
 		LogLevel:          logLevel,
 		NetworkPort:       7074, // + i,
 		RatisDataDir:      "./data",
-		BaseWorkingDir:    "./output/" + ModelFuzz.String(), // FuzzerType(i).String(),
+		BaseWorkingDir:    "./output/" + fuzzerType.String(), // FuzzerType(i).String(),
 		MutationsPerTrace: 3,
 		SeedPopulation:    20,
 		NumRequests:       3,
@@ -36,7 +38,7 @@ func main() {
 		SubPathLength:     2,
 
 		ClusterConfig: &ClusterConfig{
-			FuzzerType:          ModelFuzz, // FuzzerType(i),
+			FuzzerType:          fuzzerType, // FuzzerType(i),
 			NumNodes:            numNodes,
 			ServerType:          Ratis,
 			XraftServerPath:     "../xraft-controlled/xraft-kvstore/target/xraft-kvstore-0.1.0-SNAPSHOT-bin/xraft-kvstore-0.1.0-SNAPSHOT/bin/xraft-kvstore",
@@ -57,7 +59,7 @@ func main() {
 	}
 	os.MkdirAll(config.BaseWorkingDir, 0777)
 
-	fuzzer, err := NewFuzzer(config, ModelFuzz)
+	fuzzer, err := NewFuzzer(config, fuzzerType)
 	if err != nil {
 		fmt.Errorf("Could not create fuzzer %e", err)
 		return
