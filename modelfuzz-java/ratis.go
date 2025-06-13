@@ -48,12 +48,12 @@ func (x *RatisNode) Create() {
 		"02511d47-d67c-49a3-9011-abb3109a44c1", // TODO - May need to cycle
 		"0",
 	}
-	
+
 	x.logger.With(LogParams{"server-args": strings.Join(serverArgs, " ")}).Debug("Creating server...")
 	ctx, cancel := context.WithCancel(context.Background())
 	x.process = exec.CommandContext(ctx, "java", serverArgs...)
 	x.cancel = cancel
-	
+
 	if x.stdout == nil {
 		x.stdout = new(bytes.Buffer)
 	}
@@ -62,7 +62,7 @@ func (x *RatisNode) Create() {
 	}
 	x.process.Stdout = x.stdout
 	x.process.Stderr = x.stderr
-	
+
 	err := x.process.Start()
 	if err != nil {
 		x.logger.Debug("Error while creating process: " + string(err.Error()))

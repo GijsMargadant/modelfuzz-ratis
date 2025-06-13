@@ -195,6 +195,7 @@ func (f *Fuzzer) Run() {
 
 				// Stop and reset network
 				f.network.Reset()
+				return
 			}
 
 			time.Sleep(1 * time.Millisecond)

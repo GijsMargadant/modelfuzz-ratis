@@ -20,7 +20,7 @@ func main() {
 	config := FuzzerConfig{
 		// TimeBudget:			60,
 		Horizon:           200,
-		Iterations:        1,
+		Iterations:        2000,
 		NumNodes:          numNodes,
 		LogLevel:          logLevel,
 		NetworkPort:       7074, // + i,
