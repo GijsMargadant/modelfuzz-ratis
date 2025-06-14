@@ -16,14 +16,14 @@ func main() {
 	fmt.Println("Random seed: " + argsWithoutProg[0])
 
 	fuzzerType := KPathFuzzer
-	k := 1000
+	k := 2
 
 	var wg sync.WaitGroup
 	// for i := 0; i <= 2; i++ {
 	config := FuzzerConfig{
 		// TimeBudget:			60,
 		Horizon:           200,
-		Iterations:        1,
+		Iterations:        2000,
 		NumNodes:          numNodes,
 		LogLevel:          logLevel,
 		NetworkPort:       7074, // + i,
