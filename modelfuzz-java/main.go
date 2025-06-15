@@ -16,7 +16,7 @@ func main() {
 	fmt.Println("Random seed: " + argsWithoutProg[0])
 
 	fuzzerType := KPathFuzzer
-	k := 2
+	k := 3
 
 	var wg sync.WaitGroup
 	// for i := 0; i <= 2; i++ {
