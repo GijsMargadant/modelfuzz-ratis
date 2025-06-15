@@ -9,7 +9,7 @@ import (
 
 func main() {
 	logLevel := "DEBUG"
-	numNodes := 3
+	numNodes := 4
 
 	argsWithoutProg := os.Args[1:]
 	seed, _ := strconv.Atoi(argsWithoutProg[0])

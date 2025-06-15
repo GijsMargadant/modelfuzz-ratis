@@ -1,6 +1,0 @@
-### Unique state parts
-The model state is a combination of induvidual state parts, e.g., `log`, `currentTerm`, etc. `unique_states.py` finds, for each part, all unique values that were found during the search. Function usage: `py unique_states.py <input.json> <output.json>`. Example:
-
-```bash
-py unique_states.py ../modelfuzz-java/output_2/k-path/unique_states.json ./results/k=1/unique_state_parts.json
-```
