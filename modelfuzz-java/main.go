@@ -9,14 +9,14 @@ import (
 
 func main() {
 	logLevel := "DEBUG"
-	numNodes := 4
+	numNodes := 3
 
 	argsWithoutProg := os.Args[1:]
 	seed, _ := strconv.Atoi(argsWithoutProg[0])
 	fmt.Println("Random seed: " + argsWithoutProg[0])
 
 	fuzzerType := KPathFuzzer
-	k := 3
+	k := 4
 
 	var wg sync.WaitGroup
 	// for i := 0; i <= 2; i++ {
@@ -37,7 +37,7 @@ func main() {
 		ReseedFrequency:   200,
 		RandomSeed:        seed,
 		SubPathLength:     k,
-
+ 
 		ClusterConfig: &ClusterConfig{
 			FuzzerType:          fuzzerType, // FuzzerType(i),
 			NumNodes:            numNodes,
