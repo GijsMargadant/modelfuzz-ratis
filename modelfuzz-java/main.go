@@ -16,7 +16,7 @@ func main() {
 	fmt.Println("Random seed: " + argsWithoutProg[0])
 
 	fuzzerType := KPathFuzzer
-	k := 4
+	k := 1
 
 	var wg sync.WaitGroup
 	// for i := 0; i <= 2; i++ {
@@ -28,9 +28,9 @@ func main() {
 		LogLevel:          logLevel,
 		NetworkPort:       7074, // + i,
 		RatisDataDir:      "./data",
-		BaseWorkingDir:    "./output/" + fuzzerType.String(), // FuzzerType(i).String(),
+		BaseWorkingDir:    "./output_/" + fuzzerType.String(), // FuzzerType(i).String(),
 		MutationsPerTrace: 3,
-		SeedPopulation:    20,
+		SeedPopulation:    20, 
 		NumRequests:       3,
 		NumCrashes:        0,
 		MaxMessages:       5,

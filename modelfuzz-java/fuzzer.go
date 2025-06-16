@@ -8,6 +8,7 @@ import (
 	"math/rand"
 	"os"
 	"path"
+	"path/filepath"
 	"strconv"
 	"time"
 )
@@ -186,16 +187,7 @@ func (f *Fuzzer) Run() {
 				logs := cluster.GetLogs()
 				cluster.Destroy()
 
-				// Save logs
-				filePath := (workDir + "/logs.log")
-				file, err := os.Create(filePath)
-				if err != nil {
-					return
-				}
-				defer file.Close()
-				writer := bufio.NewWriter(file)
-				writer.WriteString(logs)
-				writer.Flush()
+				f.WriteLogs(workDir, logs)
 
 				// Stop and reset network
 				f.network.Reset()
@@ -256,19 +248,12 @@ func (f *Fuzzer) Run() {
 		logs := cluster.GetLogs()
 		cluster.Destroy()
 
-		// Save logs
-		filePath := workDir + "/logs.log"
-		file, err := os.Create(filePath)
-		if err != nil {
-			return
-		}
-		defer file.Close()
-		writer := bufio.NewWriter(file)
-		writer.WriteString(logs)
-		writer.Flush()
+		f.WriteLogs(workDir, logs)
 
 		// Get event trace
 		eventTrace := f.network.GetEventTrace()
+		f.WriteTrace(workDir, eventTrace)
+		f.WriteSchedule(workDir, schedule)
 
 		// Stop and reset network
 		f.network.Reset()
@@ -345,6 +330,51 @@ func (f *Fuzzer) Run() {
 	defer file.Close()
 	writer := bufio.NewWriter(file)
 	writer.Write(dataB)
+	writer.Flush()
+}
+
+func (f *Fuzzer) WriteLogs(workDir string, logs string) {
+	filePath := filepath.Join(workDir, "logs.log")
+	f.WriteToFile(logs, filePath)
+}
+
+func (f *Fuzzer) WriteTrace(workDir string, trace *EventTrace) {
+	filePath := filepath.Join(workDir, "events.json")
+
+	dataB, err := json.MarshalIndent(trace, "", "\t")
+	if err != nil {
+		f.logger.With(LogParams{"error": err}).Warn("Could not marshal event trace to JSON")
+		return
+	}
+
+	f.WriteToFile(string(dataB), filePath)
+}
+
+func (f *Fuzzer) WriteSchedule(workDir string, schedule *Trace) {
+	filePath := filepath.Join(workDir, "schedule.json")
+
+	dataB, err := json.MarshalIndent(schedule, "", "\t")
+	if err != nil {
+		f.logger.With(LogParams{"error": err}).Warn("Could not marshal schedule to JSON")
+		return
+	}
+
+	f.WriteToFile(string(dataB), filePath)
+}
+
+func (f *Fuzzer) WriteToFile(content string, filePath string) {
+	file, err := os.Create(filePath)
+	if err != nil {
+		f.logger.With(LogParams{"error": err}).Warn("Could not write event trace")
+		return
+	}
+	defer file.Close()
+
+	writer := bufio.NewWriter(file)
+	if _, err := writer.WriteString(content); err != nil {
+		f.logger.With(LogParams{"error": err}).Warn("Failed writing to file")
+		return
+	}
 	writer.Flush()
 }
 
