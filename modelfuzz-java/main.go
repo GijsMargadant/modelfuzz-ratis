@@ -8,27 +8,44 @@ import (
 )
 
 func main() {
+    // Define k values to run sequentially
+    kValues := []int{2, 3}
+    
+    for _, k := range kValues {
+        
+        fmt.Printf("Starting experiment with k= %d\n", k)
+        
+        // Run experiment with current k value
+        runExperiment(k, 123456789)
+        
+        fmt.Printf("Completed experiment with k=%d\n", k)
+    }
+    
+    fmt.Println("All experiments completed")
+}
+
+func runExperiment(k int, seed int) {
 	logLevel := "DEBUG"
 	numNodes := 5
 
-	argsWithoutProg := os.Args[1:]
-	seed, _ := strconv.Atoi(argsWithoutProg[0])
-	fmt.Println("Random seed: " + argsWithoutProg[0])
-
+	//argsWithoutProg := os.Args[1:]
+	// seed, _ := strconv.Atoi(argsWithoutProg[0])
+	// fmt.Println("Random seed: " + argsWithoutProg[0])
+	fmt.Println("Random seed: " + strconv.Itoa(seed))
 	fuzzerType := KPathFuzzer
-	k := 1   // set to two ks to test both k=2 and k=3
+	//k := 1   // set to two ks to test both k=2 and k=3
 
 	var wg sync.WaitGroup
 	// for i := 0; i <= 2; i++ {
 	config := FuzzerConfig{
 		// TimeBudget:			60,
 		Horizon:           200,
-		Iterations:        2000, // 1000,
+		Iterations:        1000,
 		NumNodes:          numNodes,
 		LogLevel:          logLevel,
-		NetworkPort:       7074, // + i,
+		NetworkPort:       7074 + k, // + i,
 		RatisDataDir:      "./data",
-		BaseWorkingDir:    "./output/" + fuzzerType.String(), // FuzzerType(i).String(),
+		BaseWorkingDir:    "./output/" + fuzzerType.String() + strconv.Itoa(k), // FuzzerType(i).String(),
 		MutationsPerTrace: 3,
 		SeedPopulation:    20, 
 		NumRequests:       0,
