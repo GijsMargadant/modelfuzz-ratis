@@ -37,7 +37,7 @@ func main() {
 		ReseedFrequency:   200,
 		RandomSeed:        seed,
 		SubPathLength:     k,
- 
+
 		ClusterConfig: &ClusterConfig{
 			FuzzerType:          fuzzerType, // FuzzerType(i),
 			NumNodes:            numNodes,
