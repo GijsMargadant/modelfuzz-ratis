@@ -9,21 +9,21 @@ import (
 
 func main() {
 	logLevel := "DEBUG"
-	numNodes := 3
+	numNodes := 5
 
 	argsWithoutProg := os.Args[1:]
 	seed, _ := strconv.Atoi(argsWithoutProg[0])
 	fmt.Println("Random seed: " + argsWithoutProg[0])
 
 	fuzzerType := KPathFuzzer
-	k := 1
+	k := 1   // set to two ks to test both k=2 and k=3
 
 	var wg sync.WaitGroup
 	// for i := 0; i <= 2; i++ {
 	config := FuzzerConfig{
 		// TimeBudget:			60,
 		Horizon:           200,
-		Iterations:        2000,
+		Iterations:        2000, // 1000,
 		NumNodes:          numNodes,
 		LogLevel:          logLevel,
 		NetworkPort:       7074, // + i,
@@ -31,8 +31,8 @@ func main() {
 		BaseWorkingDir:    "./output/" + fuzzerType.String(), // FuzzerType(i).String(),
 		MutationsPerTrace: 3,
 		SeedPopulation:    20, 
-		NumRequests:       3,
-		NumCrashes:        0,
+		NumRequests:       0,
+		NumCrashes:        5,
 		MaxMessages:       5,
 		ReseedFrequency:   200,
 		RandomSeed:        seed,
