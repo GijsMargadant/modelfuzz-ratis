@@ -30,14 +30,14 @@ func main() {
 		RatisDataDir:      "./data",
 		BaseWorkingDir:    "./output/" + fuzzerType.String(), // FuzzerType(i).String(),
 		MutationsPerTrace: 3,
-		SeedPopulation:    20, 
+		SeedPopulation:    20,
 		NumRequests:       3,
 		NumCrashes:        0,
 		MaxMessages:       5,
 		ReseedFrequency:   200,
 		RandomSeed:        seed,
 		SubPathLength:     k,
- 
+
 		ClusterConfig: &ClusterConfig{
 			FuzzerType:          fuzzerType, // FuzzerType(i),
 			NumNodes:            numNodes,
