@@ -14,3 +14,11 @@ uv run unique_states.py ../modelfuzz-java/output_2/k-path/unique_states.json ./r
 ```bash
 uv run coverage_plot.py --input ../modelfuzz-java/output_2/k-path/stats.json ../modelfuzz-java/output_3/k-path/stats.json ../modelfuzz-java/output_4/k-path/stats.json --output ./results/coverage/coverage.pdf --labels k=1 k=2 k=3 --save-csv
 ```
+
+### Find iterations that violate single leader constraint
+`multiple_leader.py` finds the iterations that, at some point, has two leaders. Provide it with an intput folder that contains, for each iteration, a folder with the events.json file. The event.json files are examined and sent to the TLC server in order to retrieve abstract model states. If at least one of the states violates the single leader constraint, the states for that iteration are stored in the output file. Usage: `uv run multiple_leader.py --input <iteration_folder> --output <output.json> [--tlc TLC_address]`. Example:
+
+```bash
+uv run .\multiple_leader.py -i ..\modelfuzz-java\output_extra\k-path\iterations -o .\results\buggy\buggyIterations.json
+```
+This creates a a json file with iteration numbers as keys and list of model state represented as strings as values.
