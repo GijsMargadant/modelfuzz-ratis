@@ -8,33 +8,55 @@ import (
 )
 
 func main() {
-	logLevel := "DEBUG"
-	numNodes := 3
+    // Define k values to run sequentially
+    kValues := []int{2, 3}
+    
+    for _, k := range kValues {
+        
+        fmt.Printf("Starting experiment with k= %d\n", k)
+        
+        // Run experiment with current k value
+        runExperiment(k, 123456789)
+        
+        fmt.Printf("Completed experiment with k=%d\n", k)
+    }
+    
+    fmt.Println("All experiments completed")
+}
 
-	argsWithoutProg := os.Args[1:]
-	seed, _ := strconv.Atoi(argsWithoutProg[0])
-	fmt.Println("Random seed: " + argsWithoutProg[0])
+func runExperiment(k int, seed int) {
+	logLevel := "DEBUG"
+	numNodes := 5
+
+	//argsWithoutProg := os.Args[1:]
+	// seed, _ := strconv.Atoi(argsWithoutProg[0])
+	// fmt.Println("Random seed: " + argsWithoutProg[0])
+	fmt.Println("Random seed: " + strconv.Itoa(seed))
+	fuzzerType := KPathFuzzer
+	//k := 1   // set to two ks to test both k=2 and k=3
 
 	var wg sync.WaitGroup
 	// for i := 0; i <= 2; i++ {
 	config := FuzzerConfig{
 		// TimeBudget:			60,
 		Horizon:           200,
-		Iterations:        1,
+		Iterations:        1000,
 		NumNodes:          numNodes,
 		LogLevel:          logLevel,
-		NetworkPort:       7074,                             // + i,
-		BaseWorkingDir:    "./output/" + ModelFuzz.String(), // FuzzerType(i).String(),
+		NetworkPort:       7074 + k, // + i,
+		RatisDataDir:      "./data",
+		BaseWorkingDir:    "./output/" + fuzzerType.String() + strconv.Itoa(k), // FuzzerType(i).String(),
 		MutationsPerTrace: 3,
-		SeedPopulation:    20,
-		NumRequests:       3,
-		NumCrashes:        0,
+		SeedPopulation:    20, 
+		NumRequests:       0,
+		NumCrashes:        5,
 		MaxMessages:       5,
 		ReseedFrequency:   200,
 		RandomSeed:        seed,
+		SubPathLength:     k,
 
 		ClusterConfig: &ClusterConfig{
-			FuzzerType:          ModelFuzz, // FuzzerType(i),
+			FuzzerType:          fuzzerType, // FuzzerType(i),
 			NumNodes:            numNodes,
 			ServerType:          Ratis,
 			XraftServerPath:     "../xraft-controlled/xraft-kvstore/target/xraft-kvstore-0.1.0-SNAPSHOT-bin/xraft-kvstore-0.1.0-SNAPSHOT/bin/xraft-kvstore",
@@ -55,7 +77,7 @@ func main() {
 	}
 	os.MkdirAll(config.BaseWorkingDir, 0777)
 
-	fuzzer, err := NewFuzzer(config, ModelFuzz)
+	fuzzer, err := NewFuzzer(config, fuzzerType)
 	if err != nil {
 		fmt.Errorf("Could not create fuzzer %e", err)
 		return

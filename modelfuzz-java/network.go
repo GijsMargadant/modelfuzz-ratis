@@ -100,8 +100,11 @@ func NewNetwork(ctx context.Context, port int, logger *Logger) *Network {
 		requestCounter:     0,
 	}
 
+	// gin.SetMode(gin.DebugMode)
 	gin.SetMode(gin.ReleaseMode)
 	r := gin.New()
+	// r.Use(gin.Logger())   // Logs every request to stdout
+	// r.Use(gin.Recovery()) // Recovers from panics
 	r.POST("/replica", n.handleReplica)
 	r.POST("/event", n.handleEvent)
 	r.POST("/message", n.handleMessage)
@@ -117,35 +120,49 @@ func NewNetwork(ctx context.Context, port int, logger *Logger) *Network {
 }
 
 func (n *Network) handleMessage(c *gin.Context) {
-	m := Message{}
-	if err := c.ShouldBindJSON(&m); err != nil {
-		fmt.Println(fmt.Errorf("unmarshal error: %e", err))
+	var raw map[string]interface{}
+	if err := c.ShouldBindJSON(&raw); err != nil {
+		n.logger.With(LogParams{"error": err.Error()}).Debug("Failed to unmarshal request")
 		c.JSON(http.StatusBadRequest, gin.H{"error": "failed to unmarshal request"})
 		return
 	}
-	to := m.to()
-	from := m.from()
-	parsedMessage := make(map[string]interface{})
-	if err := json.Unmarshal([]byte(m.Data), &parsedMessage); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "failed to unmarshal request"})
+
+	from, ok1 := raw["from"].(string)
+	to, ok2 := raw["to"].(string)
+	msgType, ok3 := raw["type"].(string)
+	data, ok4 := raw["data"].(string)
+	paramsRaw, ok5 := raw["params"]
+
+	if !ok1 || !ok2 || !ok3 || !ok4 || !ok5 {
+		n.logger.With(LogParams{"error": "missing required fields"}).Debug("Invalid message format")
+		c.JSON(http.StatusBadRequest, gin.H{"error": "missing required fields"})
 		return
 	}
-	n.logger.With(LogParams{"message": parsedMessage}).Debug("received message")
-	m.ParsedMessage = parsedMessage
-	// sendEvent := Event{
-	// 	Name:   "SendMessage",
-	// 	Node:   from,
-	// 	Params: n.getMessageEventParams(m),
-	// }
+
+	params, ok := paramsRaw.(map[string]interface{})
+	if !ok {
+		n.logger.With(LogParams{"error": "params field is not a valid object"}).Debug("Invalid params format")
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid params format"})
+		return
+	}
+
+	m := Message{
+		From:          from,
+		To:            to,
+		Type:          msgType,
+		Data:          data,
+		ParsedMessage: params,
+	}
+
+	// n.logger.With(LogParams{"message": params}).Debug("received message")
 
 	mKey := fmt.Sprintf("%s_%s", from, to)
+
 	n.lock.Lock()
-	_, ok := n.mailboxes[mKey]
-	if !ok {
+	if _, ok := n.mailboxes[mKey]; !ok {
 		n.mailboxes[mKey] = make([]Message, 0)
 	}
 	n.mailboxes[mKey] = append(n.mailboxes[mKey], m.Copy())
-	// n.Events.Add(sendEvent)
 	n.lock.Unlock()
 
 	c.JSON(http.StatusOK, gin.H{"message": "ok"})
@@ -194,37 +211,48 @@ func (n *Network) handleReplica(c *gin.Context) {
 }
 
 func (n *Network) handleEvent(c *gin.Context) {
-	event := make(map[string]interface{})
-	if err := c.ShouldBindJSON(&event); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "failed to unmarshal request"})
+	// event := make(map[string]interface{})
+	// if err := c.ShouldBindJSON(&event); err != nil {
+	// 	c.JSON(http.StatusBadRequest, gin.H{"error": "failed to unmarshal request"})
+	// 	return
+	// }
+	body, err := io.ReadAll(c.Request.Body)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "failed to read body"})
+		return
+	}
+
+	event, err := decodePossiblyDoubleEncodedJSON(body)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "failed to decode body to JSON"})
 		return
 	}
 
 	n.logger.With(LogParams{"event": event}).Debug("received event")
 	nodeID := "1"
-	nodeIDI, ok := event["node"]
+	nodeIDI, ok := event["server_id"]
 	if !ok {
+		n.logger.Debug("Could not find server_id")
 		c.JSON(http.StatusOK, gin.H{"message": "ok"})
 		return
 	}
 	nodeIDS, ok := nodeIDI.(string)
 	if !ok {
+		n.logger.Debug("Could not cast server_id")
 		c.JSON(http.StatusOK, gin.H{"message": "ok"})
 		return
 	}
-	nodeID = nodeIDS // nodeID, err := strconv.Atoi(nodeIDS)
-	// if err != nil {
-	// 	c.JSON(http.StatusOK, gin.H{"message": "ok"})
-	// 	return
-	// }
+	nodeID = nodeIDS
 
 	eventTypeI, ok := event["type"]
 	if !ok {
+		n.logger.Debug("Could not find type")
 		c.JSON(http.StatusOK, gin.H{"message": "ok"})
 		return
 	}
 	eventType, ok := eventTypeI.(string)
 	if !ok {
+		n.logger.Debug("Could not cast type")
 		c.JSON(http.StatusOK, gin.H{"message": "ok"})
 		return
 	}
@@ -235,10 +263,28 @@ func (n *Network) handleEvent(c *gin.Context) {
 		Params: n.mapEventToParams(eventType, event),
 	}
 
+	n.logger.With(LogParams{"e": e}).Debug("Appending event")
 	n.lock.Lock()
 	n.Events.Add(e)
 	n.lock.Unlock()
 	c.JSON(http.StatusOK, gin.H{"message": "ok"})
+}
+
+func decodePossiblyDoubleEncodedJSON(data []byte) (map[string]interface{}, error) {
+	var outer interface{}
+	if err := json.Unmarshal(data, &outer); err != nil {
+		return nil, err
+	}
+	switch v := outer.(type) {
+	case string:
+		var inner map[string]interface{}
+		err := json.Unmarshal([]byte(v), &inner)
+		return inner, err
+	case map[string]interface{}:
+		return v, nil
+	default:
+		return nil, fmt.Errorf("unexpected JSON type")
+	}
 }
 
 func (n *Network) mapEventToParams(t string, e map[string]interface{}) map[string]interface{} {
@@ -269,6 +315,10 @@ func (n *Network) mapEventToParams(t string, e map[string]interface{}) map[strin
 		node, _ := strconv.Atoi(eParams["node"].(string))
 		params["node"] = node
 		params["snapshot_index"] = int(eParams["snapshot_index"].(float64))
+	case "AdvanceCommitIndex":
+		node, _ := strconv.Atoi(eParams["server_id"].(string))
+		params["node"] = node
+		params["i"] = node
 	default:
 		params = eParams
 	}
@@ -299,7 +349,7 @@ func (n *Network) getMessageEventParams(m Message) map[string]interface{} {
 		params["type"] = "MsgApp"
 		params["log_term"] = m.ParsedMessage["prev_log_term"]
 		entries := make([]entry, 0)
-		for _, eI := range m.ParsedMessage["entries"].([]interface{}) {
+		for _, eI := range m.ParsedMessage["entries"].(map[string]interface{}) {
 			e := eI.(map[string]interface{})
 			data := e["data"].(string)
 			if data == "" {
@@ -309,10 +359,10 @@ func (n *Network) getMessageEventParams(m Message) map[string]interface{} {
 			if !ok {
 				continue
 			}
-			
+
 			entries = append(entries, entry{
 				Term: int(eTermI.(float64)),
-				Data: strconv.Itoa(n.getRequestNumber(data)), 
+				Data: strconv.Itoa(n.getRequestNumber(data)),
 			})
 		}
 		params["entries"] = entries
@@ -322,7 +372,7 @@ func (n *Network) getMessageEventParams(m Message) map[string]interface{} {
 		}
 		params["commit"] = m.ParsedMessage["leader_commit"]
 		params["reject"] = false
-	case "append_entries_response":
+	case "append_entries_reply":
 		params["type"] = "MsgAppResp"
 		params["log_term"] = 0
 		params["entries"] = []entry{}
@@ -336,13 +386,16 @@ func (n *Network) getMessageEventParams(m Message) map[string]interface{} {
 		params["index"] = m.ParsedMessage["last_log_idx"]
 		params["commit"] = 0
 		params["reject"] = false
-	case "request_vote_response":
+	case "request_vote_reply":
 		params["type"] = "MsgVoteResp"
 		params["log_term"] = 0
 		params["entries"] = []entry{}
 		params["index"] = 0
 		params["commit"] = 0
-		params["reject"] = int(m.ParsedMessage["vote_granted"].(float64)) == 0
+		params["reject"] = int(m.ParsedMessage["reject"].(float64)) == 0
+	case "AdvanceCommitIndex":
+		params["type"] = "AdvanceCommitIndex"
+		params["i"] = m.ParsedMessage["server_id"]
 	}
 	return params
 }
@@ -425,6 +478,7 @@ func (n *Network) Schedule(from, to string, maxMessages int) {
 	mKey := fmt.Sprintf("%s_%s", from, to)
 	n.lock.Lock()
 	mailbox, ok := n.mailboxes[mKey]
+
 	if ok {
 		offset := 0
 		for i, m := range mailbox {
@@ -457,10 +511,22 @@ func (n *Network) Schedule(from, to string, maxMessages int) {
 
 	for _, m := range messagesToSend {
 		go func(m Message, addr string, client *http.Client) {
-			bs, err := json.Marshal(m)
+			msg := map[string]interface{}{
+				"from":   m.From,
+				"to":     m.To,
+				"type":   m.Type,
+				"data":   m.Data,
+				"params": m.ParsedMessage,
+			}
+			jsonBytes, err := json.Marshal(msg)
 			if err != nil {
 				return
 			}
+			escaped, err := json.Marshal(string(jsonBytes))
+			if err != nil {
+				return
+			}
+			bs := escaped
 			n.logger.With(LogParams{
 				"message": string(bs),
 			}).Debug("sending message to: " + "http://" + addr + "/schedule_" + from)

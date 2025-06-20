@@ -1,0 +1,10 @@
+/.idea
+
+*.html
+*.exec
+*.xml
+*.log
+/modelfuzz-java/output_crash_k1/k-path/iterations
+/modelfuzz-java/output_2000/k-path/iterations
+/modelfuzz-java/output_crash_k2/k-path/iterations
+/modelfuzz-java/output_crash_k3/k-path/iterations

@@ -1,0 +1,557 @@
+{
+	"Events": [
+		{
+			"Name": "Timeout",
+			"Params": {
+				"node": 3
+			},
+			"Reset": false
+		},
+		{
+			"Name": "Timeout",
+			"Params": {
+				"node": 1
+			},
+			"Reset": false
+		},
+		{
+			"Name": "Timeout",
+			"Params": {
+				"node": 2
+			},
+			"Reset": false
+		},
+		{
+			"Name": "DeliverMessage",
+			"Params": {
+				"commit": 0,
+				"entries": [],
+				"from": 1,
+				"index": 0,
+				"log_term": 0,
+				"reject": false,
+				"term": 1,
+				"to": 3,
+				"type": "MsgVote"
+			},
+			"Reset": false
+		},
+		{
+			"Name": "DeliverMessage",
+			"Params": {
+				"commit": 0,
+				"entries": [],
+				"from": 3,
+				"index": 0,
+				"log_term": 0,
+				"reject": false,
+				"term": 1,
+				"to": 2,
+				"type": "MsgVote"
+			},
+			"Reset": false
+		},
+		{
+			"Name": "DeliverMessage",
+			"Params": {
+				"commit": 0,
+				"entries": [],
+				"from": 2,
+				"index": 0,
+				"log_term": 0,
+				"reject": false,
+				"term": 1,
+				"to": 1,
+				"type": "MsgVote"
+			},
+			"Reset": false
+		},
+		{
+			"Name": "DeliverMessage",
+			"Params": {
+				"commit": 0,
+				"entries": [],
+				"from": 2,
+				"index": 0,
+				"log_term": 0,
+				"reject": false,
+				"term": 1,
+				"to": 3,
+				"type": "MsgVote"
+			},
+			"Reset": false
+		},
+		{
+			"Name": "DeliverMessage",
+			"Params": {
+				"commit": 0,
+				"entries": [],
+				"from": 1,
+				"index": 0,
+				"log_term": 0,
+				"reject": false,
+				"term": 1,
+				"to": 2,
+				"type": "MsgVote"
+			},
+			"Reset": false
+		},
+		{
+			"Name": "DeliverMessage",
+			"Params": {
+				"commit": 0,
+				"entries": [],
+				"from": 3,
+				"index": 0,
+				"log_term": 0,
+				"reject": true,
+				"term": 1,
+				"to": 2,
+				"type": "MsgVoteResp"
+			},
+			"Reset": false
+		},
+		{
+			"Name": "DeliverMessage",
+			"Params": {
+				"commit": 0,
+				"entries": [],
+				"from": 2,
+				"index": 0,
+				"log_term": 0,
+				"reject": true,
+				"term": 1,
+				"to": 1,
+				"type": "MsgVoteResp"
+			},
+			"Reset": false
+		},
+		{
+			"Name": "DeliverMessage",
+			"Params": {
+				"commit": 0,
+				"entries": [],
+				"from": 2,
+				"index": 0,
+				"log_term": 0,
+				"reject": false,
+				"term": 1,
+				"to": 3,
+				"type": "MsgVote"
+			},
+			"Reset": false
+		},
+		{
+			"Name": "DeliverMessage",
+			"Params": {
+				"commit": 0,
+				"entries": [],
+				"from": 2,
+				"index": 0,
+				"log_term": 0,
+				"reject": true,
+				"term": 1,
+				"to": 3,
+				"type": "MsgVoteResp"
+			},
+			"Reset": false
+		},
+		{
+			"Name": "DeliverMessage",
+			"Params": {
+				"commit": 0,
+				"entries": [],
+				"from": 3,
+				"index": 0,
+				"log_term": 0,
+				"reject": true,
+				"term": 1,
+				"to": 2,
+				"type": "MsgVoteResp"
+			},
+			"Reset": false
+		},
+		{
+			"Name": "DeliverMessage",
+			"Params": {
+				"commit": 0,
+				"entries": [],
+				"from": 1,
+				"index": 0,
+				"log_term": 0,
+				"reject": false,
+				"term": 1,
+				"to": 2,
+				"type": "MsgVote"
+			},
+			"Reset": false
+		},
+		{
+			"Name": "DeliverMessage",
+			"Params": {
+				"commit": 0,
+				"entries": [],
+				"from": 1,
+				"index": 0,
+				"log_term": 0,
+				"reject": true,
+				"term": 1,
+				"to": 2,
+				"type": "MsgVoteResp"
+			},
+			"Reset": false
+		},
+		{
+			"Name": "DeliverMessage",
+			"Params": {
+				"commit": 0,
+				"entries": [],
+				"from": 2,
+				"index": 0,
+				"log_term": 0,
+				"reject": true,
+				"term": 1,
+				"to": 1,
+				"type": "MsgVoteResp"
+			},
+			"Reset": false
+		},
+		{
+			"Name": "DeliverMessage",
+			"Params": {
+				"commit": 0,
+				"entries": [],
+				"from": 3,
+				"index": 0,
+				"log_term": 0,
+				"reject": false,
+				"term": 1,
+				"to": 1,
+				"type": "MsgVote"
+			},
+			"Reset": false
+		},
+		{
+			"Name": "DeliverMessage",
+			"Params": {
+				"commit": 0,
+				"entries": [],
+				"from": 3,
+				"index": 0,
+				"log_term": 0,
+				"reject": true,
+				"term": 1,
+				"to": 1,
+				"type": "MsgVoteResp"
+			},
+			"Reset": false
+		},
+		{
+			"Name": "DeliverMessage",
+			"Params": {
+				"commit": 0,
+				"entries": [],
+				"from": 1,
+				"index": 0,
+				"log_term": 0,
+				"reject": true,
+				"term": 1,
+				"to": 3,
+				"type": "MsgVoteResp"
+			},
+			"Reset": false
+		},
+		{
+			"Name": "Timeout",
+			"Params": {
+				"node": 2
+			},
+			"Reset": false
+		},
+		{
+			"Name": "DeliverMessage",
+			"Params": {
+				"commit": 0,
+				"entries": [],
+				"from": 2,
+				"index": 0,
+				"log_term": 0,
+				"reject": false,
+				"term": 2,
+				"to": 1,
+				"type": "MsgVote"
+			},
+			"Reset": false
+		},
+		{
+			"Name": "DeliverMessage",
+			"Params": {
+				"commit": 0,
+				"entries": [],
+				"from": 2,
+				"index": 0,
+				"log_term": 0,
+				"reject": false,
+				"term": 2,
+				"to": 3,
+				"type": "MsgVote"
+			},
+			"Reset": false
+		},
+		{
+			"Name": "DeliverMessage",
+			"Params": {
+				"commit": 0,
+				"entries": [],
+				"from": 1,
+				"index": 0,
+				"log_term": 0,
+				"reject": false,
+				"term": 2,
+				"to": 2,
+				"type": "MsgVoteResp"
+			},
+			"Reset": false
+		},
+		{
+			"Name": "DeliverMessage",
+			"Params": {
+				"commit": 0,
+				"entries": [],
+				"from": 3,
+				"index": 0,
+				"log_term": 0,
+				"reject": false,
+				"term": 2,
+				"to": 2,
+				"type": "MsgVoteResp"
+			},
+			"Reset": false
+		},
+		{
+			"Name": "ClientRequest",
+			"Params": {
+				"leader": "2",
+				"request": 0
+			},
+			"Reset": false
+		},
+		{
+			"Name": "BecomeLeader",
+			"Params": {
+				"node": 2,
+				"term": 2
+			},
+			"Reset": false
+		},
+		{
+			"Name": "LogUpdate",
+			"Params": {
+				"log_index": 0,
+				"server_id": "2",
+				"type": "LogUpdate"
+			},
+			"Reset": false
+		},
+		{
+			"Name": "DeliverMessage",
+			"Params": {
+				"commit": -1,
+				"entries": [],
+				"from": 2,
+				"index": 0,
+				"log_term": 0,
+				"reject": false,
+				"term": 2,
+				"to": 3,
+				"type": "MsgApp"
+			},
+			"Reset": false
+		},
+		{
+			"Name": "ClientRequest",
+			"Params": {
+				"leader": 2,
+				"request": 1
+			},
+			"Reset": false
+		},
+		{
+			"Name": "ClientRequest",
+			"Params": {
+				"leader": 2,
+				"request": 2
+			},
+			"Reset": false
+		},
+		{
+			"Name": "DeliverMessage",
+			"Params": {
+				"commit": -1,
+				"entries": [],
+				"from": 2,
+				"index": 0,
+				"log_term": 0,
+				"reject": false,
+				"term": 2,
+				"to": 1,
+				"type": "MsgApp"
+			},
+			"Reset": false
+		},
+		{
+			"Name": "DeliverMessage",
+			"Params": {
+				"commit": 0,
+				"entries": [],
+				"from": 3,
+				"index": 0,
+				"log_term": 0,
+				"reject": false,
+				"term": 2,
+				"to": 2,
+				"type": "MsgAppResp"
+			},
+			"Reset": false
+		},
+		{
+			"Name": "LogUpdate",
+			"Params": {
+				"log_index": 0,
+				"server_id": "2",
+				"type": "LogUpdate"
+			},
+			"Reset": false
+		},
+		{
+			"Name": "AdvanceCommitIndex",
+			"Params": {
+				"i": 2,
+				"node": 2
+			},
+			"Reset": false
+		},
+		{
+			"Name": "LogUpdate",
+			"Params": {
+				"log_index": 0,
+				"server_id": "2",
+				"type": "LogUpdate"
+			},
+			"Reset": false
+		},
+		{
+			"Name": "AdvanceCommitIndex",
+			"Params": {
+				"i": 3,
+				"node": 3
+			},
+			"Reset": false
+		},
+		{
+			"Name": "LogUpdate",
+			"Params": {
+				"log_index": 0,
+				"server_id": "2",
+				"type": "LogUpdate"
+			},
+			"Reset": false
+		},
+		{
+			"Name": "Timeout",
+			"Params": {
+				"node": 1
+			},
+			"Reset": false
+		},
+		{
+			"Name": "DeliverMessage",
+			"Params": {
+				"commit": 0,
+				"entries": [],
+				"from": 1,
+				"index": 0,
+				"log_term": 2,
+				"reject": false,
+				"term": 3,
+				"to": 3,
+				"type": "MsgVote"
+			},
+			"Reset": false
+		},
+		{
+			"Name": "DeliverMessage",
+			"Params": {
+				"commit": 0,
+				"entries": [],
+				"from": 1,
+				"index": 0,
+				"log_term": 2,
+				"reject": false,
+				"term": 3,
+				"to": 2,
+				"type": "MsgVote"
+			},
+			"Reset": false
+		},
+		{
+			"Name": "DeliverMessage",
+			"Params": {
+				"commit": 0,
+				"entries": [],
+				"from": 3,
+				"index": 0,
+				"log_term": 0,
+				"reject": false,
+				"term": 3,
+				"to": 1,
+				"type": "MsgVoteResp"
+			},
+			"Reset": false
+		},
+		{
+			"Name": "BecomeLeader",
+			"Params": {
+				"node": 1,
+				"term": 3
+			},
+			"Reset": false
+		},
+		{
+			"Name": "LogUpdate",
+			"Params": {
+				"log_index": 0,
+				"server_id": "1",
+				"type": "LogUpdate"
+			},
+			"Reset": false
+		},
+		{
+			"Name": "LogUpdate",
+			"Params": {
+				"log_index": -1,
+				"server_id": "1",
+				"type": "LogUpdate"
+			},
+			"Reset": false
+		},
+		{
+			"Name": "LogUpdate",
+			"Params": {
+				"log_index": 1,
+				"server_id": "1",
+				"type": "LogUpdate"
+			},
+			"Reset": false
+		},
+		{
+			"Name": "LogUpdate",
+			"Params": {
+				"log_index": -1,
+				"server_id": "1",
+				"type": "LogUpdate"
+			},
+			"Reset": false
+		}
+	]
+}

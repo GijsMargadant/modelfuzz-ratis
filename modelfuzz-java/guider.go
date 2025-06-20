@@ -13,15 +13,20 @@ import (
 type Guider interface {
 	Check(iter string, trace *Trace, eventTrace *EventTrace, record bool) (bool, int)
 	Coverage() int
-	// BranchCoverage() int
 	Reset()
+
+	// Paths() Paths
+	// DumpPaths(filePath string) error
+	// DumpSubPaths(filePath string) error
 }
 
-func NewGuider(fuzzerType FuzzerType, addr, recordPath string) Guider {
+func NewGuider(fuzzerType FuzzerType, addr string, config FuzzerConfig) Guider {
 	if fuzzerType == ModelFuzz || fuzzerType == RandomFuzzer {
-		return NewTLCStateGuider(addr, recordPath)
+		return NewTLCStateGuider(addr, config.BaseWorkingDir)
 	} else if fuzzerType == TraceFuzzer {
-		return NewTraceCoverageGuider(addr, recordPath)
+		return NewTraceCoverageGuider(addr, config.BaseWorkingDir)
+	} else if fuzzerType == KPathFuzzer {
+		return NewKPathCoverageGuider(addr, config.BaseWorkingDir, config.SubPathLength)
 	} else {
 		return nil
 	}

@@ -2,7 +2,9 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"errors"
+	"fmt"
 	"os"
 	"os/exec"
 	"strconv"
@@ -18,6 +20,7 @@ type RatisNode struct {
 
 	stdout *bytes.Buffer
 	stderr *bytes.Buffer
+	cancel context.CancelFunc
 }
 
 func NewRatisNode(config *NodeConfig, logger *Logger) *RatisNode {
@@ -45,15 +48,12 @@ func (x *RatisNode) Create() {
 		"02511d47-d67c-49a3-9011-abb3109a44c1", // TODO - May need to cycle
 		"0",
 	}
-	// for i := 1; i <= x.config.NumNodes; i++ {
-	// 	serverArgs = append(serverArgs, fmt.Sprintf("%d,localhost,%d", i, x.config.BaseGroupPort+i))
-	// }
-	x.logger.With(LogParams{"server-args": strings.Join(serverArgs, "")}).Debug("Creating server...")
-
-	x.process = exec.Command("java", serverArgs...)
-	// x.process.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
-	SetupProcessGroup(x.process) // platform independent
-
+	
+	x.logger.With(LogParams{"server-args": strings.Join(serverArgs, " ")}).Debug("Creating server...")
+	ctx, cancel := context.WithCancel(context.Background())
+	x.process = exec.CommandContext(ctx, "java", serverArgs...)
+	x.cancel = cancel
+	
 	if x.stdout == nil {
 		x.stdout = new(bytes.Buffer)
 	}
@@ -62,6 +62,11 @@ func (x *RatisNode) Create() {
 	}
 	x.process.Stdout = x.stdout
 	x.process.Stderr = x.stderr
+	
+	err := x.process.Start()
+	if err != nil {
+		x.logger.Debug("Error while creating process: " + string(err.Error()))
+	}
 }
 
 func (x *RatisNode) Start() error {
@@ -82,28 +87,11 @@ func (x *RatisNode) Stop() error {
 	if x.process == nil {
 		return errors.New("ratis server not started")
 	}
-	// done := make(chan error, 1)
-	// go func() {
-	// 	err := x.process.Wait()
-	// 	done <- err
-	// }()
 
-	// var err error = nil
-	// select {
-	// case <- time.After(50 * time.Millisecond):
-	// 	err = x.process.Process.Kill()
-	// case err = <- done:
-	// }
-
-	var err error
-	if x.process.Process != nil {
-		// err = syscall.Kill(-x.process.Process.Pid, syscall.SIGKILL)
-		err = KillProcessGroup(x.process.Process.Pid) // platform independent
-	}
-
+	KillProcessGroup(x.process.Process.Pid)
+	x.cancel()
 	x.process = nil
-
-	return err
+	return nil
 }
 
 func (x *RatisNode) GetLogs() (string, string) {
@@ -133,27 +121,24 @@ func NewRatisClient(clientBinary, peerAddresses, log4jConfig string, logger *Log
 
 func (c *RatisClient) SendRequest() {
 	c.logger.Debug("Sending client request...")
+
 	clientArgs := []string{
 		c.RatisLog4jConfig,
 		"-cp",
 		c.ClientBinary,
+		"org.apache.ratis.examples.counter.client.CounterClient",
 		"1",
 		c.PeerAddresses,
-		"02511d47-d67c-49a3-9011-abb3109a44c1", // TODO - May need it as param
+		"02511d47-d67c-49a3-9011-abb3109a44c1",
 	}
-	// for i := 1; i <= c.NumNodes; i++ {
-	// 	clientArgs = append(clientArgs, fmt.Sprintf("%d,localhost,%d", i, c.BaseServicePort+i))
-	// }
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
 
-	process := exec.Command("java", clientArgs...)
-
-	// cmdDone := make(chan error, 1)
-	process.Start()
-
-	select {
-	case <-time.After(2 * time.Second):
-		// syscall.Kill(-process.Process.Pid, syscall.SIGKILL)
-		KillProcessGroup(process.Process.Pid) // platform independent
-	default:
+	command := exec.CommandContext(ctx, "java", clientArgs...)
+	err := command.Start()
+	if err != nil {
+		c.logger.Error(fmt.Sprintf("Process exited with error: %v", err))
+	} else {
+		c.logger.Debug("Process finished successfully")
 	}
 }

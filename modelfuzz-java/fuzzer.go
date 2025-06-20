@@ -8,6 +8,7 @@ import (
 	"math/rand"
 	"os"
 	"path"
+	"path/filepath"
 	"strconv"
 	"time"
 )
@@ -18,6 +19,7 @@ const (
 	RandomFuzzer FuzzerType = 0
 	ModelFuzz    FuzzerType = 1
 	TraceFuzzer  FuzzerType = 2
+	KPathFuzzer  FuzzerType = 3
 )
 
 func (ft FuzzerType) String() string {
@@ -28,6 +30,8 @@ func (ft FuzzerType) String() string {
 		return "random"
 	case TraceFuzzer:
 		return "trace"
+	case KPathFuzzer:
+		return "k-path"
 	default:
 		return fmt.Sprintf("%d", int(ft))
 	}
@@ -42,6 +46,7 @@ type FuzzerConfig struct {
 	LogLevel       string
 	NetworkPort    int
 	BaseWorkingDir string
+	RatisDataDir   string
 
 	MutationsPerTrace int
 	SeedPopulation    int
@@ -50,6 +55,7 @@ type FuzzerConfig struct {
 	MaxMessages       int
 	ReseedFrequency   int
 	RandomSeed        int
+	SubPathLength     int
 
 	ClusterConfig *ClusterConfig
 	TLCPort       int
@@ -91,7 +97,7 @@ func NewFuzzer(config FuzzerConfig, fuzzerType FuzzerType) (*Fuzzer, error) {
 	ctx, _ := context.WithCancel(context.Background())
 	f.network = NewNetwork(ctx, config.NetworkPort, f.logger.With(LogParams{"type": "network"}))
 	addr := fmt.Sprintf("localhost:%d", config.TLCPort)
-	f.guider = NewGuider(fuzzerType, addr, config.BaseWorkingDir)
+	f.guider = NewGuider(fuzzerType, addr, config)
 	f.mutator = CombineMutators(NewSwapCrashNodeMutator(1, f.random), NewSwapNodeMutator(20, f.random), NewSwapMaxMessagesMutator(20, f.random))
 	f.logger.Debug("Initialized fuzzer")
 
@@ -118,7 +124,7 @@ func (f *Fuzzer) Run() {
 		}
 
 		// Set up directory
-		workDir := path.Join(f.config.BaseWorkingDir, strconv.Itoa(iter))
+		workDir := path.Join(f.config.BaseWorkingDir, "iterations", strconv.Itoa(iter))
 		if _, err := os.Stat(workDir); err == nil {
 			os.RemoveAll(workDir)
 		}
@@ -129,6 +135,7 @@ func (f *Fuzzer) Run() {
 
 		// Start cluster
 		f.config.ClusterConfig.WorkDir = path.Join(workDir, "cluster")
+		f.config.ClusterConfig.RatisDataDir = f.config.RatisDataDir
 		f.config.ClusterConfig.ClusterID = iter
 		f.config.ClusterConfig.SchedulerPort = f.config.NetworkPort
 		cluster := NewCluster(f.config.ClusterConfig, f.logger.With(LogParams{"type": "cluster"}))
@@ -142,9 +149,11 @@ func (f *Fuzzer) Run() {
 			mutated = false
 		} else {
 			if len(f.scheduleQueue) > 0 {
+				f.logger.Debug("Taking schedule from schedule queue")
 				schedule = f.scheduleQueue[0]
 				f.scheduleQueue = f.scheduleQueue[1:]
 			} else {
+				f.logger.Debug("Generating new random schedule")
 				schedule = f.GenerateRandom()
 				mutated = false
 			}
@@ -171,31 +180,27 @@ func (f *Fuzzer) Run() {
 
 		crashCount := 0
 		requestCount := 0
+		start := time.Now()
 		for !f.network.WaitForNodes(f.config.NumNodes) {
+			if time.Since(start).Seconds() > 10 {
+				// Stop and reset cluster
+				logs := cluster.GetLogs()
+				cluster.Destroy()
+
+				f.WriteLogs(workDir, logs)
+
+				// Stop and reset network
+				f.network.Reset()
+				return
+			}
+
 			time.Sleep(1 * time.Millisecond)
 		}
 
 		f.logger.Debug("Fuzzer setup complete.")
 		time.Sleep(3 * time.Second)
 
-		for step := 0; step < f.config.Horizon; step++ { // start := time.Now(); time.Since(start) < time.Duration(f.config.IterTimeBudget) * time.Second; {
-			// var choice Choice
-			// // Random if schedule is empty
-			// if step >= len(schedule.Choices) {
-			// 	// Choose between nodes (from, to), client request, fault
-			// 	fromIdx := f.random.Intn(f.config.NumNodes) + 1
-			// 	toIdx := f.random.Intn(f.config.NumNodes) + 1
-			// 	choice = Choice{
-			// 		Type: "Node",
-			// 		Step: step,
-			// 		From: strconv.Itoa(fromIdx),
-			// 		To:	 strconv.Itoa(toIdx),
-			// 		MaxMessages: f.random.Intn(f.config.MaxMessages),
-			// 	}
-			// 	schedule.Add(choice)
-			// } else {
-			// 	choice = schedule.Choices[step]
-			// }
+		for step := 0; step < f.config.Horizon; step++ {
 
 			f.logger.Debug(strconv.Itoa(step))
 			crashNode, ok := crashPoints[step]
@@ -230,7 +235,7 @@ func (f *Fuzzer) Run() {
 
 			op, ok := clientRequests[step]
 			if ok {
-				f.logger.Debug("Sending request " + op)
+				f.logger.Debug("Sending request: " + op)
 				cluster.SendRequest()
 				f.network.AddClientRequestEvent(requestCount)
 				requestCount++
@@ -243,19 +248,12 @@ func (f *Fuzzer) Run() {
 		logs := cluster.GetLogs()
 		cluster.Destroy()
 
-		// Save logs
-		filePath := workDir + "/logs.log"
-		file, err := os.Create(filePath)
-		if err != nil {
-			return
-		}
-		defer file.Close()
-		writer := bufio.NewWriter(file)
-		writer.WriteString(logs)
-		writer.Flush()
+		f.WriteLogs(workDir, logs)
 
 		// Get event trace
 		eventTrace := f.network.GetEventTrace()
+		f.WriteTrace(workDir, eventTrace)
+		f.WriteSchedule(workDir, schedule)
 
 		// Stop and reset network
 		f.network.Reset()
@@ -268,6 +266,7 @@ func (f *Fuzzer) Run() {
 		// }
 		if f.guider != nil {
 			newStates, weight = f.guider.Check("states", schedule, eventTrace, true)
+			f.logger.Debug("Found " + strconv.Itoa(weight) + " new states")
 		}
 		if newStates && f.fuzzerType != RandomFuzzer {
 			mutatedTraces := make([]*Trace, 0)
@@ -334,6 +333,51 @@ func (f *Fuzzer) Run() {
 	writer.Flush()
 }
 
+func (f *Fuzzer) WriteLogs(workDir string, logs string) {
+	filePath := filepath.Join(workDir, "logs.log")
+	f.WriteToFile(logs, filePath)
+}
+
+func (f *Fuzzer) WriteTrace(workDir string, trace *EventTrace) {
+	filePath := filepath.Join(workDir, "events.json")
+
+	dataB, err := json.MarshalIndent(trace, "", "\t")
+	if err != nil {
+		f.logger.With(LogParams{"error": err}).Warn("Could not marshal event trace to JSON")
+		return
+	}
+
+	f.WriteToFile(string(dataB), filePath)
+}
+
+func (f *Fuzzer) WriteSchedule(workDir string, schedule *Trace) {
+	filePath := filepath.Join(workDir, "schedule.json")
+
+	dataB, err := json.MarshalIndent(schedule, "", "\t")
+	if err != nil {
+		f.logger.With(LogParams{"error": err}).Warn("Could not marshal schedule to JSON")
+		return
+	}
+
+	f.WriteToFile(string(dataB), filePath)
+}
+
+func (f *Fuzzer) WriteToFile(content string, filePath string) {
+	file, err := os.Create(filePath)
+	if err != nil {
+		f.logger.With(LogParams{"error": err}).Warn("Could not write event trace")
+		return
+	}
+	defer file.Close()
+
+	writer := bufio.NewWriter(file)
+	if _, err := writer.WriteString(content); err != nil {
+		f.logger.With(LogParams{"error": err}).Warn("Failed writing to file")
+		return
+	}
+	writer.Flush()
+}
+
 func (f *Fuzzer) GenerateRandom() *Trace {
 	trace := NewTrace()
 	for i := 0; i < f.config.Horizon; i++ {
@@ -344,7 +388,7 @@ func (f *Fuzzer) GenerateRandom() *Trace {
 			Step:        i,
 			From:        strconv.Itoa(fromIdx),
 			To:          strconv.Itoa(toIdx),
-			MaxMessages: f.random.Intn(f.config.MaxMessages),
+			MaxMessages: f.random.Intn(f.config.MaxMessages + 1),
 		})
 	}
 	choices := make([]int, f.config.Horizon)
