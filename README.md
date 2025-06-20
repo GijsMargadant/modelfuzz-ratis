@@ -40,6 +40,6 @@ java -jar dist/tla2tools_server.jar -controlled ..\tla-benchmarks\Raft\model\RAF
 
 Now, within the `modelfuzz` directory, run the fuzzer using:
 ``` shell
-./modelfuzz-java 123456789
+./modelfuzz-java
 ```
-where `123456789` is the seed
+The seed is not included in the comand, instead it can be specified in main.go
