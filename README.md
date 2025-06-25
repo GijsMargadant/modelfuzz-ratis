@@ -43,3 +43,6 @@ Now, within the `modelfuzz` directory, run the fuzzer using:
 ./modelfuzz-java
 ```
 The seed is not included in the comand, instead it can be specified in main.go
+
+----
+Fir further information check analysis folder and [README.md](https://github.com/GijsMargadant/modelfuzz-ratis/blob/main/analysis/README.md)
